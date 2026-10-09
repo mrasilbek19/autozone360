@@ -1,5 +1,18 @@
 # Completed tasks and evidence ledger
 
+## Event and order component scaffolds — 2026-10-09
+
+COMPLETED: created six files under `apps/gamenix-api/src/components`:
+
+- `event/event.module.ts`, `event/event.resolver.ts`, `event/event.service.ts`
+- `order/order.module.ts`, `order/order.resolver.ts`, `order/order.service.ts`
+
+Modified `components/components.module.ts` to import/register both modules. Kept existing singular domain naming, @Module/@Resolver/@Injectable decorators, constructor injection, Mongoose model registration and service-export conventions. Event and Order reuse existing schemas and DTO types in place. Related OrderItem/EventParticipant models are not registered here.
+
+No application operations or business logic were introduced. Authentication, guards, uploads, product/member logic, schemas and DTOs remain unchanged. Existing event/order data definitions now have modules/services/resolvers, but CRUD, checkout and registration operations remain unimplemented. Updated BACKEND_MIGRATION, COMPLETED_TASKS and NEXT_STEPS to distinguish scaffolding from feature completion.
+
+Validation: both app `npx tsc -p .../tsconfig.app.json --noEmit` checks PASS; `npm run build` PASS (API); `npm test -- --runInBand --watch=false --silent` PASS (1 suite / 5 tests currently present). An offline Nest TestingModule with mocked model providers resolved EventResolver/EventService and OrderResolver/OrderService successfully. No live database connection, deployed index or runtime feature behavior was tested.
+
 ## Guard preservation correction — 2026-10-09
 
 At the user's request, reverted only the agent's RolesGuard changes and the dependent AuthModule Member-model registration/export. No user changes existed in those diffs. Production `roles.guard.ts`, `auth.guard.ts`, `without.guard.ts` and `auth.module.ts` now match HEAD exactly (verified with git diff --exit-code).

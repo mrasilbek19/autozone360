@@ -1,5 +1,13 @@
 # Backend migration: Nestar → Gamenix
 
+## Event and order scaffolding — 2026-10-09
+
+The user requested component modules with resolvers/services matching existing style. Added `components/event/event.{module,resolver,service}.ts` and `components/order/order.{module,resolver,service}.ts` under the existing API src directory. ComponentsModule imports EventModule and OrderModule. Each registers its existing primary Mongoose schema, provides its resolver/service and exports its service; services inject Model<Event>/Model<Order>, and resolvers inject the corresponding service.
+
+This is scaffolding only: no GraphQL queries/mutations, checkout, inventory, order calculations or event registration behavior was added. OrderItem and EventParticipant model providers are not registered by these scaffolds. Existing schemas/DTOs, authentication and guards remain unchanged. Earlier statements that Event/Order have no application modules are superseded by this section; their business operations still do not exist.
+
+Both app TypeScript checks and the API build pass. All 5 tests currently present pass; an offline Nest testing-module check resolved both services, resolvers and their model dependencies. No live database/startup test was run. Registering these modules makes Event and Order models available at runtime using their existing collection configuration.
+
 ## Current correction — guards preserved, 2026-10-09
 
 The user subsequently instructed: do not change guard files. The agent's RolesGuard changes were reverted, along with the AuthModule Member-model registration/export that existed only to support that guard change. All production guards and AuthModule now match HEAD exactly.

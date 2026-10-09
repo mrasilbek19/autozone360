@@ -1,5 +1,11 @@
 # Next steps
 
+## Latest scaffold status — 2026-10-09
+
+EventModule and OrderModule, each with a resolver and service, are created under components and imported by ComponentsModule. Existing Event/Order schemas are registered. Both app TypeScript checks, API build, all 5 currently present tests and an offline DI smoke check pass.
+
+These are scaffolds without GraphQL operations or business logic. Stop at the requested generation task. Future event/order behavior needs its own approved requirements; do not infer checkout, stock deduction, registration, OrderItem/EventParticipant provider wiring or ownership rules from empty services. Existing guard-preservation constraints and unresolved shop-approval enforcement remain unchanged.
+
 ## Latest state — guard changes removed, 2026-10-09
 
 The user prohibited guard-file changes. RolesGuard and its supporting AuthModule changes have been reverted. SHOP/PENDING signup, public ADMIN rejection and self-update privilege-write rejection remain; existing ADMIN operations still update member status.
