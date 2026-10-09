@@ -1,5 +1,25 @@
 # Architectural decisions
 
+## Current accepted decisions — ER Phase 1, 2026-10-09
+
+These decisions supersede conflicting proposals in the historical record below.
+
+- Preserve `gamenix-api` / `gamenix-batch`, NestJS DI and the existing module/resolver/service pattern. Keep schemas in `src/schemas` as explicitly required by the latest request; DTOs/enums remain under `src/libs`.
+- Use MemberType USER / ADMIN / SHOP and `memberProducts`. Preserve `getAgents`, `AgentsInquiry` and `availableAgentSorts`; changing these names is unnecessary for this data-model migration.
+- Use the exact Product fields and ten categories specified in the attached request. Remove housing fields/filters and the old unique housing index; independent shops can sell similar equipment.
+- ProductStatus is PAUSE / PROCESS / FINISHED. The user explicitly approved PROCESS for active listings, FINISHED for sold listings and `deletedAt` for deletion. Default PROCESS preserves existing creation behavior. PAUSE is not deletion. Existing owner checks, counters and admin purge behavior remain, with the required status/date adaptations.
+- OrderStatus is PAUSE / PROCESS / FINISHED, default PAUSE. EventType is TOURNAMENT / GIVEAWAY; EventStatus is PAUSED / PROCESS / FINISHED, default PAUSED. These are data defaults, not new lifecycle services.
+- Use the ER's `order`, `orderItems` and `events` collections and exact owner/reference names. Keep customer `memberId` and event organizer internal to input assignment, following the existing catalog ownership pattern.
+- Product stock is a nonnegative integer. Item quantity and event capacity are positive integers. Money fields are nonnegative numbers. No inventory deduction, totals calculation, checkout, event registration or new WebSocket functionality is authorized in Phase 1.
+- ParticipantStatus values confirmed by the user: REGISTERED / CANCELLED. EventParticipant defaults to REGISTERED and uses collection `eventParticipants`, Event/Member refs and a unique `(eventId, memberId)` index across both states. Re-registration policy is deferred; cancellation does not free the unique pair. Input `memberId` is internal for future authenticated assignment; update DTO only exposes `_id` and optional status, preserving references.
+- New Order/OrderItem/Event/EventParticipant definitions are not wired to application operations. Future services must enforce SHOP/customer identity, one shop per order and reference existence; refs alone provide no such checks.
+
+Still pending: existing-data/client compatibility; shop enrollment/security policy; atomic order/inventory writes; payment, shipping, cancellation and event registration rules; private chat. No live data migration or Phase 2 work is authorized by this increment.
+
+## Historical snapshot — retained for migration history
+
+The following records describe earlier repository states and proposals. Current status and accepted decisions above take precedence. Earlier validation records remain historical.
+
 Snapshot: 2026-10-09 (Asia/Seoul). Confirmed means explicitly required by the user/`AGENTS.md`, not necessarily implemented. Proposed alternatives below are tradeoffs for future review; this session did not establish a historical alternatives discussion.
 
 ## Confirmed target decisions

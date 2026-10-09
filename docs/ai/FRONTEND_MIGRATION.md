@@ -1,5 +1,17 @@
 # Frontend migration plan
 
+## Backend contract update — ER Phase 1
+
+Frontend work remains NOT STARTED. The backend catalog source now uses Product fields/types/operations and ten gaming categories. Clients must use `productName`, `productPrice`, `productLeftCount` and PRODUCT targets; housing inputs/filters are removed. ProductStatus is PAUSE / PROCESS / FINISHED, with deletion represented by `deletedAt`. Member outputs expose `memberProducts` and roles USER / ADMIN / SHOP.
+
+`getAgents` and `AgentsInquiry` intentionally retain their existing names while selecting SHOP. Favorites/visits retain their operation names and return Products. Order/OrderItem/Event DTOs exist only as definitions; no new checkout/event/registration API is available. EventParticipant data definitions are complete with REGISTERED / CANCELLED; no registration endpoint exists. Do not build UI against unimplemented operations. Existing clients and stored data require a separate compatibility review.
+
+The conceptual frontend plan below remains future work, not authorization to begin Phase 2.
+
+## Historical snapshot — retained for migration history
+
+The following records describe earlier repository states and proposals. Current status and accepted decisions above take precedence. Earlier validation records remain historical.
+
 Snapshot: 2026-10-09 (Asia/Seoul). Status: PLANNED / NOT STARTED in this checkout.
 
 ## Evidence boundary

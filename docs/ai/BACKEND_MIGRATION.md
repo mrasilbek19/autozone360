@@ -1,5 +1,27 @@
 # Backend migration: Nestar → Gamenix
 
+## Current Phase 1 state — 2026-10-09
+
+This section supersedes the historical snapshot below. The latest attached Phase 1 request authorizes ER schemas, GraphQL data definitions, enums and directly dependent Property → Product references. Application paths remain `apps/gamenix-api` and `apps/gamenix-batch`. Schemas remain in `src/schemas`; the user's explicit instruction not to relocate them overrides the placement guidance in AGENTS.md.
+
+- Member now uses USER / ADMIN / SHOP and `memberProducts`; authentication fields and behavior are preserved.
+- Product replaces Property in the existing module/resolver/service, DTOs, enums and model registration. The persisted fields match the supplied ER model, with ten product categories and integer, nonnegative `productLeftCount`. Housing fields, housing filters and the cross-shop housing unique index are removed.
+- Existing catalog operations now use Product names: `createProduct`, `getProduct`, `updateProduct`, `getProducts`, `getShopProducts`, `likeTargetProduct`, `getAllProductsByAdmin`, `updateProductByAdmin`, `removeProductByAdmin`. `getFavorites` and `getVisited` retain their names and return Products. Ownership is still assigned from authenticated context and checked on ordinary updates.
+- User-approved lifecycle mapping: PROCESS means active, FINISHED means sold, and `deletedAt` means deleted. PAUSE remains an editable, nondeleted listing. Public listing/detail/like and batch ranking select PROCESS with `deletedAt: null`. Sale/deletion timestamps are persisted. Existing admin purge only removes already soft-deleted records. No inventory deduction or checkout was added.
+- Order, OrderItem and Event schemas, object DTOs, input/update DTOs and enums exist. Their collections are `order`, `orderItems`, and `events`. They have no application modules, registered providers, resolvers or business services yet; these definitions do not expose new order/event operations.
+- EventParticipant schema, object/input/update DTOs and registered ParticipantStatus enum are complete. The user confirmed REGISTERED / CANCELLED; new records default to REGISTERED. `eventId` refs Event and `memberId` refs Member. Collection `eventParticipants` has a unique `(eventId, memberId)` index, including cancelled records. Member assignment is internal to the input, consistent with existing ownership DTOs; updates expose only `_id` and optional status. No registration module/service/resolver or application model provider was added.
+- Comment/like/view/notification targets and product joins/counters/batch references were adapted directly. Community and socket behavior were preserved. `getAgents`, `AgentsInquiry`, `availableAgentSorts`, `batchTopAgents` and `BATCH_TOP_AGENTS` intentionally retain their existing names and now select SHOP.
+
+Relationships: Product.memberId → Member; Order.memberId/shopId → Member; OrderItem.orderId → Order and productId → Product; Event.eventOrganizer → Member; EventParticipant.eventId → Event and memberId → Member; Notification.productId → Product. Mongoose refs do not enforce SHOP membership, item/order consistency or single-shop orders by themselves; new order/event authorization belongs to the next approved phase.
+
+Compatibility: this is a breaking source/GraphQL contract change. No live database or client migration was executed. Existing AGENT documents/JWTs, properties collections, memberProperties counters, PROPERTY groups and notification propertyId fields need an explicitly reviewed migration before reuse. Existing authentication/guard weaknesses remain outside this phase. Catalog/member counters retain their existing nontransactional behavior.
+
+Validation and the complete file inventory are recorded in [COMPLETED_TASKS.md](COMPLETED_TASKS.md). Phase 1 ER data definitions are complete and validated. Registration behavior and all Phase 2 work remain unimplemented. Phase 2 has not started.
+
+## Historical snapshot — retained for migration history
+
+The following records describe earlier repository states and proposals. Current status and accepted decisions above take precedence. Earlier validation records remain historical.
+
 Snapshot: 2026-10-09 (Asia/Seoul). Source: repository inspection, `AGENTS.md`, and the attached documentation request. No earlier implementation session history was supplied. Source presence is not runtime verification; see [COMPLETED_TASKS.md](COMPLETED_TASKS.md).
 
 ## Context and status

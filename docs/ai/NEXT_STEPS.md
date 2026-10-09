@@ -1,5 +1,21 @@
 # Next steps
 
+## Current next steps — after ER Phase 1 work
+
+1. Phase 1 ER definitions are complete: EventParticipant now has REGISTERED / CANCELLED, Event/Member refs, object/input/update DTOs and the unique `(eventId, memberId)` index. Both TypeScript checks, both builds and all 20 tests pass. No further implementation is authorized in this phase.
+2. Review existing-data and frontend compatibility before deployment: AGENT → SHOP, Property → Product fields/collections/GraphQL contracts, member counters and PRODUCT group/reference values. Do not execute a live migration automatically.
+3. Stop after Phase 1. Obtain explicit approval before order, checkout, inventory, payment, event/registration services or frontend changes.
+4. In a later approved phase, wire Order/OrderItem/Event/Participant models and operations using existing Nest patterns. Enforce authenticated ownership, SHOP organizers and single-shop orders; calculate totals server-side and choose atomic inventory/idempotency/cancellation rules. Existing DTOs are data definitions, not trusted checkout commands.
+5. Later address known auth/self-update role risks, guard null handling, counter atomicity and private socket authorization separately. They were deliberately preserved in this phase.
+
+The product catalog rename, member roles/counters, housing-filter removal and dependent community/batch references are implemented; do not repeat the historical rename tasks below. Keep `getAgents`, `AgentsInquiry`, `availableAgentSorts` and agent-named shop ranking methods unless a later task explicitly approves their rename. Schema placement is settled for this phase: `src/schemas`.
+
+See [COMPLETED_TASKS.md](COMPLETED_TASKS.md) for exact validation and file inventory. No Phase 2 work has started.
+
+## Historical snapshot — retained for migration history
+
+The following records describe earlier repository states and proposals. Current status and accepted decisions above take precedence. Earlier validation records remain historical.
+
 Snapshot: 2026-10-09 (Asia/Seoul). Remaining implementation tasks below are PLANNED; the project naming/configuration rename is COMPLETED. See [COMPLETED_TASKS.md](COMPLETED_TASKS.md) for current validation limits.
 
 ## Priority and dependency order

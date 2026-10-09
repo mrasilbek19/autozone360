@@ -122,7 +122,7 @@ export class MemberService {
         const { text } = input.search;
 
         const match: T = {
-            memberType: MemberType.AGENT,
+            memberType: MemberType.SHOP,
             memberStatus: MemberStatus.ACTIVE,
         };
 

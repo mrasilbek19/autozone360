@@ -1,64 +1,46 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
-import { PropertyLocation, PropertyStatus, PropertyType } from '../../enums/property.enum';
+import { ProductStatus, ProductType } from '../../enums/product.enum';
 import { Member, TotalCounter } from '../member/member';
 import { MeLiked } from '../like/like';
 
 @ObjectType()
-export class Property {
+export class Product {
     @Field(() => String)
     _id: ObjectId;
 
-    @Field(() => PropertyType)
-    propertyType: PropertyType;
+    @Field(() => ProductType)
+    productType: ProductType;
 
-    @Field(() => PropertyStatus)
-    propertyStatus: PropertyStatus;
-
-    @Field(() => PropertyLocation)
-    propertyLocation: PropertyLocation;
+    @Field(() => ProductStatus)
+    productStatus: ProductStatus;
 
     @Field(() => String)
-    propertyAddress: string;
-
-    @Field(() => String)
-    propertyTitle: string;
+    productName: string;
 
     @Field(() => Number)
-    propertyPrice: number;
-
-    @Field(() => Number)
-    propertySquare: number;
+    productPrice: number;
 
     @Field(() => Int)
-    propertyBeds: number;
+    productLeftCount: number;
 
     @Field(() => Int)
-    propertyRooms: number;
+    productViews: number;
 
     @Field(() => Int)
-    propertyViews: number;
+    productLikes: number;
 
     @Field(() => Int)
-    propertyLikes: number;
+    productComments: number;
 
     @Field(() => Int)
-    propertyComments: number;
-
-    @Field(() => Int)
-    propertyRank: number;
+    productRank: number;
 
     @Field(() => [String])
-    propertyImages: string[];
+    productImages: string[];
 
     @Field(() => String, { nullable: true })
-    propertyDesc?: string;
-
-    @Field(() => Boolean)
-    propertyBarter: boolean;
-
-    @Field(() => Boolean)
-    propertyRent: boolean;
+    productDesc?: string;
 
     @Field(() => String)
     memberId: ObjectId;
@@ -68,9 +50,6 @@ export class Property {
 
     @Field(() => Date, { nullable: true })
     deletedAt?: Date;
-
-    @Field(() => Date, { nullable: true })
-    constructedAt?: Date;
 
     @Field(() => Date)
     createdAt: Date;
@@ -88,9 +67,9 @@ export class Property {
 }
 
 @ObjectType()
-export class Properties {
-    @Field(() => [Property])
-    list: Property[];
+export class Products {
+    @Field(() => [Product])
+    list: Product[];
 
     @Field(() => [TotalCounter], { nullable: true })
     metaCounter: TotalCounter[];

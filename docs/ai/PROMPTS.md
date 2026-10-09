@@ -1,5 +1,15 @@
 # Reusable Codex prompts
 
+## Current scope override — ER Phase 1
+
+The historical prompts below are reference material, not instructions to start more work. Property → Product and USER/ADMIN/SHOP data migration are now implemented in source. Keep schemas in `src/schemas` and app paths `gamenix-api` / `gamenix-batch`. Preserve `getAgents`, `AgentsInquiry` and `availableAgentSorts` names.
+
+Phase 1 ER definitions are complete, including EventParticipant schema/object/input/update DTOs, REGISTERED / CANCELLED enum and unique event/member index. Read the current handoff sections and wait for a new approved task; do not repeat the completed definitions. Registration/re-registration policy remains future work. Do not add order/event services, checkout, inventory deduction, auth rewrites, socket features or frontend work without a new approval. New Order/OrderItem/Event definitions do not establish available operations. See COMPLETED_TASKS for current checks and files.
+
+## Historical snapshot — retained for migration history
+
+The following records describe earlier repository states and proposals. Current status and accepted decisions above take precedence. Earlier validation records remain historical.
+
 Snapshot: 2026-10-09 (Asia/Seoul). These prompts are derived from the current user's instructions and repository findings; they are not transcripts of earlier sessions.
 
 ## Required preamble for every prompt below

@@ -5,10 +5,10 @@ import { Like, MeLiked } from '../../libs/dto/like/like';
 import { LikeInput } from '../../libs/dto/like/like.input';
 import { T } from '../../libs/types/common';
 import { Message } from '../../libs/enums/common.enum';
-import { Properties } from '../../libs/dto/property/property';
+import { Products } from '../../libs/dto/product/product';
 import { lookupFavorite } from '../../libs/config';
 import { LikeGroup } from '../../libs/enums/like.enum';
-import { OrdinaryInquiry } from '../../libs/dto/property/property.input';
+import { OrdinaryInquiry } from '../../libs/dto/product/product.input';
 
 @Injectable()
 export class LikeService {
@@ -47,14 +47,14 @@ export class LikeService {
         return result ? [{ memberId: memberId, likeRefId: likeRefId, myFavorite: true }] : [];
     }
 
-    public async getFavoriteProperties(
+    public async getFavoriteProducts(
         memberId: ObjectId,
         input: OrdinaryInquiry,
-    ): Promise<Properties> {
+    ): Promise<Products> {
         const { page, limit } = input;
 
         const match: T = {
-            likeGroup: LikeGroup.PROPERTY,
+            likeGroup: LikeGroup.PRODUCT,
             memberId: memberId,
         };
 
@@ -64,20 +64,20 @@ export class LikeService {
                 { $sort: { updatedAt: -1 } },
                 {
                     $lookup: {
-                        from: 'properties',
+                        from: 'products',
                         localField: 'likeRefId',
                         foreignField: '_id',
-                        as: 'favoriteProperty',
+                        as: 'favoriteProduct',
                     },
                 },
-                { $unwind: '$favoriteProperty' },
+                { $unwind: '$favoriteProduct' },
                 {
                     $facet: {
                         list: [
                             { $skip: (page - 1) * limit },
                             { $limit: limit },
                             lookupFavorite,
-                            { $unwind: '$favoriteProperty.memberData' },
+                            { $unwind: '$favoriteProduct.memberData' },
                         ],
                         metaCounter: [{ $count: 'total' }],
                     },
@@ -85,12 +85,12 @@ export class LikeService {
             ])
             .exec();
 
-        const result: Properties = {
+        const result: Products = {
             list: [],
             metaCounter: data[0].metaCounter,
         };
 
-        result.list = data[0].list.map((ele) => ele.favoriteProperty);
+        result.list = data[0].list.map((ele) => ele.favoriteProduct);
 
         return result;
     }
