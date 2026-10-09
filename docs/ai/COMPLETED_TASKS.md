@@ -1,5 +1,75 @@
 # Completed tasks and evidence ledger
 
+## Guard preservation correction — 2026-10-09
+
+At the user's request, reverted only the agent's RolesGuard changes and the dependent AuthModule Member-model registration/export. No user changes existed in those diffs. Production `roles.guard.ts`, `auth.guard.ts`, `without.guard.ts` and `auth.module.ts` now match HEAD exactly (verified with git diff --exit-code).
+
+Retained service changes: SHOP/PENDING signup, public ADMIN signup rejection and prevention of self-service role/status writes. The user's PENDING enum addition is preserved. Existing ADMIN operations and all other architecture remain unchanged.
+
+Updated the newly created `components/auth/guards/shop-approval.spec.ts` to test unchanged role-based behavior instead of the removed current-member checks. The test explicitly records that PENDING SHOP tokens are still allowed by the original guard. No production guard modifications or replacement authorization feature remains. Updated these four handoff docs to distinguish the remaining approval-enforcement gap from the historical completed implementation below.
+
+Current validation:
+
+- API TypeScript check: PASS.
+- Batch TypeScript check: PASS.
+- npm run build: PASS (API).
+- nest build gamenix-batch: PASS.
+- npm test -- --runInBand --watch=false --silent: PASS, 3 suites / 38 tests.
+- Production guards/AuthModule compared with HEAD: identical.
+
+SHOP operational status restrictions and current-database authorization freshness are NOT implemented after this reversal. Existing admin status updates still work, but PENDING accounts are not prevented from SHOP role-protected operations. No alternative solution was introduced automatically. Earlier 44-test and enforcement claims below describe the superseded state.
+
+## Earlier records — latest correction takes precedence
+
+## Minimal Phase 2 SHOP approval — 2026-10-09
+
+COMPLETED after the user approved the revised minimal file list. Only the user's existing MemberStatus.PENDING addition was uncommitted at the start; it was preserved without edits. The broader earlier auth/upload changes were not present and were not restored.
+
+Source files modified:
+
+- `apps/gamenix-api/src/components/member/member.service.ts` — reject public ADMIN signup; set SHOP signup to PENDING before the unchanged hash/create/token sequence; reject self-updates of role/status to prevent approval bypass. Existing login and admin update implementation are unchanged.
+- `apps/gamenix-api/src/components/auth/guards/roles.guard.ts` — after unchanged JWT verification, load current Member and require the current role; require ACTIVE for SHOP/ADMIN. Missing current members are denied. Existing JWTs reflect approval/blocking/demotion at the next role-protected request. Ordinary USER status rules were not expanded.
+- `apps/gamenix-api/src/components/auth/auth.module.ts` — register/export the existing Member model so consumer-module RolesGuards can query it; AuthService remains unchanged.
+
+Test files created:
+
+- `apps/gamenix-api/src/components/member/shop-approval.spec.ts`
+- `apps/gamenix-api/src/components/auth/guards/shop-approval.spec.ts`
+
+Documentation modified:
+
+- `docs/ai/BACKEND_MIGRATION.md`
+- `docs/ai/DECISIONS.md`
+- `docs/ai/COMPLETED_TASKS.md`
+- `docs/ai/NEXT_STEPS.md`
+
+Existing operations used, without new mutations/DTOs:
+
+- signup(input: MemberInput) and login(input: LoginInput).
+- getAllMembersByAdmin(input: MembersInquiry), with SHOP/PENDING search filters, lists pending shops.
+- updateMemberByAdmin(input: MemberUpdate) with {_id: shopId, memberStatus: ACTIVE} approves the account under existing ADMIN/RolesGuard authorization.
+
+USER remains ACTIVE by the existing schema default. SHOP begins PENDING and may log in under the existing login rules, but cannot perform SHOP role-protected operations. Admin approval sets ACTIVE through existing trusted status management; no separate rejection workflow was implemented. Self role/status writes are rejected even though MemberUpdate retains these fields for the existing admin operation.
+
+| Validation command | Result |
+|---|---|
+| `npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit` | PASS — no compilation errors |
+| `npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit` | PASS — no compilation errors |
+| `npm run build` | PASS — API webpack |
+| `./node_modules/.bin/nest build gamenix-batch` | PASS — batch webpack |
+| `npm test -- --runInBand --watch=false --silent` | PASS — 3 suites, 44 tests |
+| `git diff --check` | PASS |
+
+The existing 20 ER tests were preserved. New tests cover unchanged USER signup/defaults, real bcrypt/JWT helpers, SHOP/PENDING signup/login, active login, existing credential/block rejection, public ADMIN rejection, self-approval/promotion denial, unchanged ordinary profile/image-path updates, existing admin filters/status updates, pending/active/blocked SHOP authorization, non-admin approval denial, stale-token approval/demotion behavior and cross-module Member-model injection.
+
+Limitations: no live MongoDB or HTTP/e2e tests ran. Existing GraphQL upload mutations/static /uploads serving remain untouched; no HTTP upload endpoint was found in this checkout, so Axios upload compatibility is NOT VERIFIED. Existing ACTIVE-only profile-update behavior means a pending shop cannot save memberImage through updateMember before approval; the external/missing HTTP endpoint's persistence behavior is unknown. No new upload or signup-image requirement was added. No new admin bootstrap or existing-account reclassification was performed.
+
+AuthService, AuthGuard/WithoutGuard, password hashing, JWT payload/signing, member resolvers/DTOs, schemas, product/order/event/community/socket source, app paths, dependency/config files and other handoff files were not changed. No lint auto-fix, commits or further phase work was performed. npm log-directory sandbox warnings did not affect successful checks.
+
+Earlier phase records below retain historical decisions and validation; this revised minimal implementation is the current source of truth for shop approval.
+
+## Earlier phase records
+
 ## EventParticipant completion — 2026-10-09
 
 COMPLETED: the user confirmed ParticipantStatus REGISTERED / CANCELLED and authorized the remaining Phase 1 data definitions. Phase 1 ER schemas/DTOs/enums are now complete. Earlier partial-status records below describe the state before this follow-up.

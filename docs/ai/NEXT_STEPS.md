@@ -1,5 +1,30 @@
 # Next steps
 
+## Latest state — guard changes removed, 2026-10-09
+
+The user prohibited guard-file changes. RolesGuard and its supporting AuthModule changes have been reverted. SHOP/PENDING signup, public ADMIN rejection and self-update privilege-write rejection remain; existing ADMIN operations still update member status.
+
+Pending task: choose an explicitly approved way to enforce active-SHOP permissions while leaving guards unchanged. No replacement was implemented. Original role-only guards permit PENDING SHOP tokens, so approval enforcement must not be marked complete. Current-database blocking/approval effects are also absent.
+
+Both TypeScript checks, API/batch builds and all 38 tests pass. Guard tests document the original behavior and its limitation. Upload endpoint discovery remains pending. Earlier next steps and completion claims below are historical where they conflict with this correction.
+
+## Earlier records — latest correction takes precedence
+
+## Current next steps — minimal SHOP approval complete
+
+The approved minimal implementation is complete: SHOP signup starts PENDING; existing ADMIN list/status-update operations support approval; RolesGuard checks current role and ACTIVE SHOP/ADMIN status; self-updates cannot alter role/status. USER signup/login, JWT/password helpers, DTOs/resolvers and upload implementation remain unchanged. Both app TypeScript checks/builds and all 44 tests pass.
+
+Stop implementation until a new task is approved. Remaining follow-up:
+
+- Locate the actual Axios-compatible HTTP upload endpoint. This checkout has GraphQL upload mutations and static file serving, but no HTTP POST upload handler. Do not implement a replacement automatically or mark HTTP upload validation complete.
+- Confirm how a pending applicant's uploaded image path is saved: existing updateMember requires ACTIVE, and the missing HTTP endpoint may have a separate persistence path. No pending-profile/image feature was added.
+- Review actual client documents and live MongoDB/index deployment before rollout. No new data migration or deployment was run. Existing SHOP accounts were not reclassified; only new signups start PENDING.
+- Orders/payments/inventory, event services/registration, frontend and private chat remain separately approved future work. Do not resume the broader superseded authentication/upload proposal.
+
+Exact file inventory, validation and limitations are in COMPLETED_TASKS. Earlier next-step records below describe prior phases and do not override this scope.
+
+## Earlier phase records
+
 ## Current next steps — after ER Phase 1 work
 
 1. Phase 1 ER definitions are complete: EventParticipant now has REGISTERED / CANCELLED, Event/Member refs, object/input/update DTOs and the unique `(eventId, memberId)` index. Both TypeScript checks, both builds and all 20 tests pass. No further implementation is authorized in this phase.

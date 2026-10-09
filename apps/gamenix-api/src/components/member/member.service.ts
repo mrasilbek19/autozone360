@@ -28,6 +28,11 @@ export class MemberService {
     ) { }
 
     public async signup(input: MemberInput): Promise<Member> {
+        const memberType = input.memberType ?? MemberType.USER;
+        if (![MemberType.USER, MemberType.SHOP].includes(memberType)) {
+            throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
+        if (memberType === MemberType.SHOP) (input as T).memberStatus = MemberStatus.PENDING;
         input.memberPassword = await this.authService.hashPassword(input.memberPassword);
         try {
             const result = await this.memberModel.create(input);
@@ -64,6 +69,9 @@ export class MemberService {
         memberId: ObjectId,
         input: MemberUpdate,
     ): Promise<Member> {
+        if (input.memberType !== undefined || input.memberStatus !== undefined) {
+            throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
         const result: Member = await this.memberModel
             .findOneAndUpdate(
                 {

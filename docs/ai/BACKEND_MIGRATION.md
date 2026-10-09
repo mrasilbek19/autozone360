@@ -1,5 +1,41 @@
 # Backend migration: Nestar → Gamenix
 
+## Current correction — guards preserved, 2026-10-09
+
+The user subsequently instructed: do not change guard files. The agent's RolesGuard changes were reverted, along with the AuthModule Member-model registration/export that existed only to support that guard change. All production guards and AuthModule now match HEAD exactly.
+
+Retained: SHOP signup sets PENDING, public ADMIN signup is rejected, and self-update cannot change role/status. Existing ADMIN listing and status-update operations remain available. No alternative authorization implementation was added.
+
+IMPORTANT remaining gap: original RolesGuard checks the JWT role only. A PENDING SHOP token can therefore pass SHOP role checks; current-database status restrictions and immediate approval/blocking effects are NOT implemented. Minimal shop approval enforcement is incomplete under the new guard constraint. Earlier statements below claiming enforced restrictions or 44 passing tests are historical and superseded by this correction.
+
+Validation after reversal: both app TypeScript checks and both builds pass; all 38 tests pass (3 suites). Guard tests now document the actual unchanged role-only behavior, including the pending-status limitation. No HTTP upload endpoint was found; upload code remains unchanged.
+
+## Earlier records — latest correction takes precedence
+
+## Current Phase 2 state — minimal SHOP approval, 2026-10-09
+
+The revised minimal request supersedes the earlier broader authentication/upload proposal. The user approved exactly three source files, two focused test files and four handoff docs. Before this increment, the working tree contained only the user's MemberStatus.PENDING enum addition; it was preserved unchanged.
+
+SHOP signup now sets memberStatus=PENDING in the existing MemberService.signup before the existing hash/create/token sequence. Public signup accepts USER or SHOP and rejects ADMIN. USER signup retains schema defaults and existing credentials. Login, password hashing, JWT creation/verification, AuthService, AuthGuard, WithoutGuard, decorators, DTOs and resolvers are unchanged.
+
+Existing admin operations provide the whole workflow:
+
+- Pending list: getAllMembersByAdmin with search {memberType: SHOP, memberStatus: PENDING}.
+- Approval: updateMemberByAdmin with input {_id: shopId, memberStatus: ACTIVE} using the existing MemberUpdate type and ADMIN RolesGuard metadata.
+- No dedicated approval/rejection mutations, new DTOs, shop modules or application collections were added. Existing trusted admin member management remains as before.
+
+RolesGuard still verifies the same JWT, then loads the current Member by its signed ID. It checks the current role; SHOP and ADMIN must be ACTIVE. PENDING/BLOCK/DELETE shops cannot use protected SHOP operations, and non-admin members cannot use admin approval. Approval/demotion/blocking affects existing JWTs at the next RolesGuard-protected request. No new status restriction was added for ordinary USER roles. AuthModule registers/exports the existing Member model for this lookup; AuthService is unchanged.
+
+Self-update rejects memberType/memberStatus writes at the service boundary, because otherwise an ordinary account could promote itself to ADMIN and bypass approval. MemberInput and MemberUpdate GraphQL shapes are unchanged; trusted ADMIN updates retain privileged fields. Other profile updates, including memberImage paths, retain their existing behavior.
+
+Validation: API/batch TypeScript checks and builds pass; all 44 tests pass (3 suites, including the existing 20 ER tests). See COMPLETED_TASKS for exact commands/files. No production MongoDB or HTTP/e2e test was run.
+
+Upload limitation: repository inspection found existing GraphQL imageUploader/imagesUploader and static GET /uploads serving, but no HTTP POST upload endpoint. No upload code, scalars, dependencies or frontend code were added or modified. The stated Axios HTTP upload flow remains unverified until its actual endpoint is located. Existing member profile updates require ACTIVE status, so a PENDING shop cannot save a picture via updateMember before approval; an external HTTP endpoint's behavior is unknown. No image requirement was added to signup.
+
+This increment completes only minimal pending-shop approval. No broader auth redesign, product/order/event/community/socket changes or further phase work was performed. Earlier phase records below are retained as history; this current section takes precedence.
+
+## Earlier phase records
+
 ## Current Phase 1 state — 2026-10-09
 
 This section supersedes the historical snapshot below. The latest attached Phase 1 request authorizes ER schemas, GraphQL data definitions, enums and directly dependent Property → Product references. Application paths remain `apps/gamenix-api` and `apps/gamenix-batch`. Schemas remain in `src/schemas`; the user's explicit instruction not to relocate them overrides the placement guidance in AGENTS.md.

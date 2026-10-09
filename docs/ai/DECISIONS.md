@@ -1,5 +1,28 @@
 # Architectural decisions
 
+## Latest constraint — preserve all production guards, 2026-10-09
+
+The user's latest instruction supersedes the previously approved RolesGuard adjustment. Restore RolesGuard unchanged and remove its now-unused Member-model registration/export from AuthModule. Preserve the service signup/self-update changes and existing PENDING enum addition. Do not replace the removed authorization logic elsewhere without further direction.
+
+Consequence: existing JWT role checks do not enforce PENDING SHOP restrictions or reload current database status. This remains unresolved; earlier current-state guard-enforcement decisions below describe the superseded implementation. Production guard files and AuthModule now match HEAD.
+
+## Earlier records — latest correction takes precedence
+
+## Current accepted decision — minimal SHOP approval, 2026-10-09
+
+The user approved the revised minimal file list. This supersedes the earlier broader Phase 2 authentication/upload plan.
+
+- Keep existing signup/login, bcrypt, JWT structure/signing/verification, AuthService, AuthGuard, decorators, MemberInput/MemberUpdate and resolvers. USER registration/login retain existing behavior.
+- Preserve the user's PENDING enum addition. New SHOP signup sets PENDING; public ADMIN signup is rejected. Do not create application collections or require a new picture/upload argument.
+- Reuse getAllMembersByAdmin with SHOP/PENDING filters and updateMemberByAdmin with memberStatus ACTIVE. Existing ADMIN metadata and trusted member management remain; no new operations or DTOs.
+- Make the smallest necessary RolesGuard change: after existing JWT verification, load the current Member and check its current role. SHOP and ADMIN require ACTIVE. Other USER status behavior remains as before. AuthModule makes the existing Member model available to the guard without changing AuthService or creating a MemberService dependency cycle.
+- Prevent self-service memberType/memberStatus updates in MemberService, because those fields would permit self-approval or ADMIN promotion. Keep DTO fields for existing trusted ADMIN updates; do not split DTOs or refactor other fields.
+- Preserve all upload code. No HTTP upload endpoint was found; do not invent one or claim the Axios flow works. Existing ACTIVE-only profile updates remain unchanged, including for pending applicants.
+
+Still pending: locating/verifying the stated HTTP uploader and its pending-shop image persistence behavior, live client/data compatibility, and any separately approved order/event/chat/frontend work. No further phase is authorized by this increment. Earlier Phase 1 decisions remain below as history.
+
+## Earlier phase records
+
 ## Current accepted decisions — ER Phase 1, 2026-10-09
 
 These decisions supersede conflicting proposals in the historical record below.

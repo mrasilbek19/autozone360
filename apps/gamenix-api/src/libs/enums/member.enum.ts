@@ -13,6 +13,7 @@ registerEnumType(MemberType, {
 export enum MemberStatus {
     ACTIVE = 'ACTIVE',
     BLOCK = 'BLOCK',
+    PENDING = 'PENDING',
     DELETE = 'DELETE',
 }
 
