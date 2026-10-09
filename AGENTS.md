@@ -1,6 +1,6 @@
-# Gamenix365 Backend Agent Instruction
+# Gamenix Backend Agent Instruction
 
-Gamenix365 is a NestJS GraphQL monorepo migrated from a real estate platform into a multi-shop gaming equipment marketplace and community platform.
+Gamenix is a NestJS GraphQL monorepo migrated from a real estate platform into a multi-shop gaming equipment marketplace and community platform.
 
 ## Read First
 
@@ -15,14 +15,14 @@ Use those files as the source of truth for AI Agent related migration history, a
 
 ## Project Shape
 
-- Backend apps are `gamenix365-api` and `gamenix365-batch`.
+- Backend apps are `gamenix-api` and `gamenix-batch`.
 - Keep the existing NestJS resolver/service/module pattern based on MVC and DI.
-- Keep DTOs, enums, schemas under `apps/gamenix365-api/src/libs`.
+- Keep DTOs, enums, schemas under `apps/gamenix-api/src/libs`.
 - Keep shared modules reusable: auth, member, like, view, comment, follow, board article, socket.
 
 ## Domain Rules
 
-- Use Gamenix365/product terminology for the main catalog entity.
+- Use Gamenix/product terminology for the main catalog entity.
 - Do not reintroduce property or real-estate fields.
 - Use `MemberType.USER`, `MemberType.SHOP` and `MemberType.ADMIN`.
 - Product ownership belongs to `MemberType.SHOP`.
@@ -48,8 +48,8 @@ Use those files as the source of truth for AI Agent related migration history, a
 Use these checks for backend work:
 
 ```bash
-npx tsc -p apps/gamenix365-api/tsconfig.app.json --noEmit
-npx tsc -p apps/gamenix365-batch/tsconfig.app.json --noEmit
+npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit
+npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit
 npm run build
 ```
 

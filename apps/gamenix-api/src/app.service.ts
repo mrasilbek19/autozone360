@@ -3,6 +3,6 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class AppService {
   getHello(): string {
-    return 'Welcome to Nestar Api Server';
+    return 'Welcome to Gamenix Api Server';
   }
 }
