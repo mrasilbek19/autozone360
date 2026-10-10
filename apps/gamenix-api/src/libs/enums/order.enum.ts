@@ -7,3 +7,10 @@ export enum OrderStatus {
 }
 
 registerEnumType(OrderStatus, { name: 'OrderStatus' });
+
+export enum OrderDeliveryType {
+    PICKUP = 'PICKUP',
+    DELIVERY = 'DELIVERY',
+}
+
+registerEnumType(OrderDeliveryType, { name: 'OrderDeliveryType' });

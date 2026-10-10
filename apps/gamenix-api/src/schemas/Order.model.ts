@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { OrderStatus } from '../libs/enums/order.enum';
+import { OrderDeliveryType, OrderStatus } from '../libs/enums/order.enum';
 
 const OrderSchema = new Schema(
     {
@@ -10,8 +10,23 @@ const OrderSchema = new Schema(
         },
 
         orderDelivery: {
-            type: String,
+            type: Number,
             required: true,
+            min: 0,
+        },
+
+        orderAddress: {
+            type: String,
+            required: function () {
+                return this.orderDeliveryType === OrderDeliveryType.DELIVERY;
+            },
+        },
+
+        orderDeliveryType: {
+            type: String,
+            enum: OrderDeliveryType,
+            required: true,
+            default: OrderDeliveryType.DELIVERY,
         },
 
         orderStatus: {

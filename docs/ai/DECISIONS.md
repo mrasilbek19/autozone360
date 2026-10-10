@@ -1,5 +1,45 @@
 # Architectural decisions
 
+## Refactoring style preference — 2026-10-10
+
+The user explicitly requested that future refactoring follow their existing service coding style. Read nearby services first, especially ProductService, MemberService, BoardArticleService, CommentService and LikeService. Follow their four-space indentation, public/private async methods, input destructuring, search/match objects, target/result names, explicit model types where useful and readable Mongoose chains ending in exec(). Preserve existing business rules and error responses when making style changes. Use existing methods and dependency injection; avoid new helpers, layers or validation without a concrete need. The accepted separate-write order behavior remains unchanged.
+
+## Latest user decision — simple separate order writes, 2026-10-10
+
+The user explicitly answered: "Remove transactions too, matching Express’s separate writes". This supersedes prior requirements to preserve sessions and atomic multi-document writes.
+
+- Retain only createOrder, recordOrderItem, getMyOrders and updateOrder, using existing NestJS injection and Perfumia's straightforward Mongoose flow.
+- Remove duplicated input validation and safe-integer/finite-value checks from the service. Keep validation in existing DTOs, GraphQL inputs and schemas. Remove duplicate-product rejection; repeated lines contribute to totals and are saved separately.
+- Keep current active member/shop, single-shop, database-price, ownership, stock availability and forward-status checks. Keep shipping fees, delivery address and pickup behavior.
+- Use map/Promise.all/create for order items, and reuse the original MemberService.memberStatsEditor signature for points. Remove its no-longer-used session argument; do not alter other member logic or guards.
+- Claim a status transition with a conditional findOneAndUpdate before deducting stock/awarding points, so repeat/concurrent requests cannot apply the transition twice. No new methods, fields, dependencies or layers are introduced.
+
+Accepted consequence: writes are no longer atomic across documents. Failures can leave incomplete order items or a PROCESS order with partial stock/point effects. Same-state retries return the order and do not complete partial writes. There is no automatic rollback/recovery; future reconciliation requires separate authorization. No live database verification was performed.
+
+## Accepted delivery semantics and options — 2026-10-10
+
+The user corrected the earlier delivery-address interpretation and supplied these rules:
+
+- orderDelivery stores the server-calculated numeric delivery fee in USD; orderAddress stores the delivery address separately.
+- Add OrderDeliveryType PICKUP / DELIVERY, default DELIVERY. Require an address for DELIVERY; allow PICKUP without one. Keep the existing OrderStatus and ProductStatus values.
+- PICKUP always has zero shipping. DELIVERY with any CHAIR or DESK costs 15 once per order, including mixed orders, regardless of subtotal. DESK represents the user's table category.
+- Other DELIVERY orders cost 5 below product subtotal 100, and zero at or above 100. Include quantity in the subtotal. orderTotal equals subtotal plus shipping, rounded to two decimals; no discounts.
+- Keep all current service methods, single-shop enforcement, ownership checks, transactions, stock deduction and MemberService points updates. Expose fulfillment choice/address in OrderInput; do not expose client-controlled fees or totals. OrderUpdate remains status-only.
+
+These decisions supersede earlier string-orderDelivery and product-only-total decisions. Existing clients must send orderAddress for delivery. Existing data requires a separately reviewed migration; do not invent historical fees or run a live migration automatically. Payment verification, cancellation/restocking and frontend UI implementation remain separate work.
+
+## Accepted order adaptation — 2026-10-09
+
+Latest order request authorizes implementation based on Perfumia while retaining NestJS DI, code-first GraphQL, current schema locations and unchanged guards. Earlier order-scaffold-only restrictions are superseded for this request; event behavior remains deferred.
+
+- User-selected pricing: preserve all ER schema fields; use orderDelivery as the delivery address and charge product totals only. Do not add Perfumia's 20% discount, numeric delivery fee or subtotal/discount fields.
+- Creation accepts an address plus productId/itemQuantity lines. Prices, totals, buyer and shop are determined server-side. Retain collection `order`, collection `orderItems` and the single-shop rule.
+- Preserve OrderStatus PAUSE / PROCESS / FINISHED. PAUSE stores a draft without reserving stock; PROCESS conditionally deducts stock and awards one point as in the reference; FINISHED closes it. Only the buyer updates their order. Same-state retries are harmless; backward and skipped transitions are rejected. Perfumia's FINISH/DELETE names are not introduced.
+- Register existing models in OrderModule and use transactions for atomic order/item writes and status/inventory/reward writes. Require a supported MongoDB topology and propagate transaction failures. No database configuration is changed.
+- Check current ACTIVE buyer and ACTIVE SHOP at the order-service boundary; preserve all guards, AuthModule and existing catalog behavior. These checks are specific to the newly authorized order flow and do not resolve the wider catalog approval gap.
+
+Deferred: live transaction/concurrency verification, request idempotency for order creation, payment confirmation, cancellation/restocking and shop/admin fulfillment operations. PROCESS currently represents a customer-requested transition; there is no payment integration.
+
 ## Latest constraint — preserve all production guards, 2026-10-09
 
 The user's latest instruction supersedes the previously approved RolesGuard adjustment. Restore RolesGuard unchanged and remove its now-unused Member-model registration/export from AuthModule. Preserve the service signup/self-update changes and existing PENDING enum addition. Do not replace the removed authorization logic elsewhere without further direction.

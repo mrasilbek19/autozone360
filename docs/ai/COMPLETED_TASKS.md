@@ -1,5 +1,104 @@
 # Completed tasks and evidence ledger
 
+## OrderService aligned with existing services — 2026-10-10
+
+Reviewed ProductService, MemberService, BoardArticleService, CommentService and LikeService. Refactored all four existing OrderService methods to use their formatting, input destructuring, search/match objects, targetOrder/result naming, explicit model result types and fluent Mongoose queries ending in exec(). Expanded the aggregation lookups and item data for readability; named the product-only sum subtotal. Kept existing exception classes/messages, query filters, write ordering, shipping, ownership, status/stock/points behavior and separate writes. No helpers, methods, transactions, validations, dependencies or GraphQL changes were added. Existing tests required no changes.
+
+Recorded the user's ongoing refactoring style preference in DECISIONS.md. Only OrderService and these two handoff docs changed in this increment; pre-existing changes were preserved. Validation: all 33 tests across 2 suites PASS (including offline GraphQL checks); API/batch TypeScript checks with --noEmit PASS; npm run build PASS (API); git diff --check PASS. No live MongoDB or HTTP/e2e tests were run.
+
+## Clearer updateOrder flow — 2026-10-10
+
+Simplified updateOrder only: replaced canProcess/canFinish flags with an explicit next-status mapping, returned immediately after FINISHED and flattened the PROCESS stock/points steps. Added short comments explaining the flow. Existing checks cover business rules rather than duplicated DTO input validation, so ownership, active member/shop, allowed transitions, conditional status claiming, nonempty items and conditional stock deductions remain. No sessions, helpers, GraphQL changes or new behavior were introduced. Separate-write failure limitations documented below still apply.
+
+Expanded transition tests to cover skipped and backward changes without status, stock or point writes. Validation: all 33 tests across 2 suites PASS (including offline GraphQL checks); API and batch TypeScript checks with --noEmit PASS; npm run build PASS (API); git diff --check PASS. No live database or HTTP/e2e tests were run. Only OrderService, its existing order-delivery test file and this ledger were edited in this increment; pre-existing changes were preserved.
+
+## Simplified Express-style OrderService — 2026-10-10
+
+COMPLETED after the user explicitly approved removal of transactions as well as unnecessary service validation. Existing uncommitted migration changes were preserved.
+
+Changes:
+
+- components/order/order.service.ts: only four original methods remain. Removed sessions, withTransaction, assertActiveMember, service-level enum/address/cart checks duplicated by DTOs/schemas, safe-integer/finite-number checks and duplicate-product Set rejection. Creation follows find → map → reduce → create → recordOrderItem; item persistence follows map/Promise.all/create. Current member/shop checks are inline; database prices, ownership, stock checks, status transitions and shipping rules remain.
+- components/member/member.service.ts: reverted only the earlier session-support hunks in memberStatsEditor. It again takes the original StatisticModifier argument and performs its existing $inc. No other member logic changed.
+- components/order/order-delivery.spec.ts: mocks now reflect separate writes; input validation is tested at its DTO/schema boundary. Added duplicate-line totals and six status/stock/points cases, including repeated/competing requests and the explicit partial-write consequence.
+- Updated this file, BACKEND_MIGRATION, DECISIONS and NEXT_STEPS. Schemas, DTOs, enums, GraphQL operations, auth/guards, modules and product services were not changed in this increment.
+
+Without transactions, updateOrder first claims the old status using a conditional update, then deducts stock and grants one point using MemberService. This prevents competing requests from applying the same transition twice. A failed later write does not roll back the status or earlier writes. Creation may leave incomplete items; retrying the same PROCESS status does not repair failures. These limits are intentional under the user's latest decision, not guarantees of atomicity.
+
+Validation: npx tsc for apps/gamenix-api/tsconfig.app.json and apps/gamenix-batch/tsconfig.app.json with --noEmit PASS; npm run build PASS (API); ./node_modules/.bin/jest --runInBand --silent PASS, 2 suites / 30 tests (25 order tests and 5 existing guard tests); git diff --check PASS. Offline GraphQL schema checks are included. No auto-fixing lint, live MongoDB tests or HTTP/e2e tests were run. Competing-update tests use an atomic mock and do not replace database concurrency verification.
+
+## Delivery pricing, order address and pickup — 2026-10-10
+
+COMPLETED under the user's clarified delivery/address request and confirmed fee rules. Added orderAddress, restored orderDelivery as a numeric price and introduced PICKUP / DELIVERY fulfillment choices. DELIVERY is the default and requires an address; PICKUP has free shipping and may omit it.
+
+Pricing in USD, once per order: any delivered CHAIR or DESK costs 15, including mixed same-shop orders; other delivery costs 5 below subtotal 100 and 0 at/above 100; pickup costs 0 for every category. Totals use database product prices times quantities plus the delivery fee, rounded to two decimals. No discount is applied.
+
+Files changed for this increment (source paths relative to apps/gamenix-api/src):
+
+- schemas/Order.model.ts: numeric nonnegative fee, separate conditionally required address and fulfillment enum/default.
+- libs/enums/order.enum.ts: registered OrderDeliveryType PICKUP / DELIVERY; OrderStatus unchanged.
+- libs/dto/order/order.ts: fee/address/fulfillment output fields; address nullable for pickup.
+- libs/dto/order/order.input.ts: fulfillment choice and conditionally required address; fee/total remain server-controlled.
+- components/order/order.service.ts: address/fulfillment checks and simple shipping calculation in createOrder. Method names are unchanged; item persistence, history, stock/status/points and authorization method bodies remain unchanged.
+- components/order/order-delivery.spec.ts: 19 focused schema, validation, GraphQL and service fee tests.
+- This file plus BACKEND_MIGRATION, DECISIONS and NEXT_STEPS: current semantics, rules, validation and compatibility notes. No guard, authentication, product service, MemberService, resolver, OrderUpdate or module wiring changes were made in this increment. Pre-existing working-tree changes were preserved.
+
+Example delivery creation input: {orderDeliveryType: DELIVERY, orderAddress: "Seoul address", orderItems: [{productId: "<product-id>", itemQuantity: 1}]}. For pickup use PICKUP and omit orderAddress. The server returns orderDelivery and orderTotal.
+
+Validation:
+
+- npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit: PASS.
+- npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit: PASS.
+- npm run build: PASS (API).
+- ./node_modules/.bin/nest build gamenix-batch: PASS.
+- ./node_modules/.bin/jest --runInBand --silent: PASS, 2 suites / 24 tests (19 new order tests and the existing 5 guard tests).
+- Offline GraphQL schema generation, field types, default choice and server-controlled input contract: PASS within the tests.
+- Method/body comparison: item persistence, order history, status/stock/points and authorization logic preserved.
+- git diff --check: PASS. No auto-fixing lint was run.
+
+Tests cover numeric/negative/free shipping, required delivery address, pickup without address, default fulfillment, quantity-based threshold, 99.99/100 boundary, chair/desk fees, mixed orders, total calculation, stored item prices and supplied-fee spoofing. Service database calls are mocked. Live MongoDB transactions/rollback/concurrency and HTTP/e2e behavior were not tested. Existing order documents and frontend requests using the old string orderDelivery contract require a reviewed migration; none was executed.
+
+## Perfumia-style order implementation — 2026-10-09
+
+COMPLETED under the new order implementation request. The working tree was clean before this task. Read Perfumia's order service/controller/types/enums/schemas/router as a reference; no Perfumia files were modified. Preserved Gamenix ER schemas, string delivery address and product-only totals as explicitly selected by the user.
+
+Files changed (all source paths relative to `apps/gamenix-api/src`):
+
+- `components/order/order.module.ts`: register existing OrderItem, Product and Member models alongside Order; import AuthModule.
+- `components/order/order.resolver.ts`: authenticated createOrder, getMyOrders and updateOrder following existing decorators and DI patterns.
+- `components/order/order.service.ts`: server-side price snapshots/totals, active member/shop checks, one-shop validation, paginated buyer order joins, owned forward-only status changes, transactional stock decrement and one-point reward on PROCESS, same-state retry handling and session cleanup.
+- `libs/dto/order/order.input.ts`: creation address/items and OrdersInquiry pagination/status filter.
+- `libs/dto/order/order.update.ts`: only order ID and required status; remove client-controlled total/address from status commands.
+- `libs/dto/order/order.ts`: optional aggregation fields orderItems/productData.
+- `libs/dto/order-item/order-item.input.ts`: only quantity/product ID; prices and parent order IDs are assigned server-side.
+- Added `components/order/order.service.spec.ts` and `components/order/order.resolver.spec.ts`.
+- Updated this file, BACKEND_MIGRATION, DECISIONS and NEXT_STEPS. No schemas, guards, auth implementation, product services, event components, dependencies or database configuration changed.
+
+New GraphQL input examples:
+
+```graphql
+# createOrder(input: OrderInput!): Order!
+# input: {orderDelivery: "Seoul address", orderItems: [{productId: "<product-id>", itemQuantity: 2}]}
+# getMyOrders(input: OrdersInquiry!): [Order!]!
+# input: {page: 1, limit: 10, orderStatus: PROCESS} # status is optional
+# updateOrder(input: OrderUpdate!): Order!
+# input: {_id: "<order-id>", orderStatus: PROCESS} # then FINISHED
+```
+
+Validation:
+
+- `npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit`: PASS. Subsequent API and batch checks using the installed `./node_modules/.bin/tsc` also PASS.
+- `npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit`: PASS.
+- `npm run build`: PASS (API).
+- `./node_modules/.bin/nest build gamenix-batch`: PASS.
+- `./node_modules/.bin/jest --runInBand`: PASS, 3 suites / 32 tests (27 order tests plus the existing 5 guard tests).
+- GraphQL schema generation and actual OrderModule dependency resolution: PASS offline within those tests.
+- `git diff --check`: PASS. No auto-fixing lint was run.
+
+Coverage includes database-derived prices/ownership, mixed shops, invalid/duplicate items, stock and approval checks, buyer-only listing/update filters, transitions, repeat PROCESS, same-session writes, failed item writes and later-item stock failure, nested DTO validation and GraphQL input exposure. Database operations are mocked: no live MongoDB rollback/concurrency, deployment topology, payment or HTTP/e2e verification occurred.
+
+Operational limits: MongoDB transactions require a replica set or sharded cluster. PAUSE does not reserve stock; availability is rechecked on PROCESS. PROCESS is not payment verification. Create retries can create separate orders. No cancellation/restock, shop/admin order management or event business logic was added. The separate catalog approval gap remains unchanged.
+
 ## Event and order component scaffolds — 2026-10-09
 
 COMPLETED: created six files under `apps/gamenix-api/src/components`:

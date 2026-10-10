@@ -3,6 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OrderResolver } from './order.resolver';
 import { OrderService } from './order.service';
 import OrderSchema from '../../schemas/Order.model';
+import OrderItemSchema from '../../schemas/OrderItem.model';
+import ProductSchema from '../../schemas/Product.model';
+import MemberSchema from '../../schemas/Member.model';
+import { AuthModule } from '../auth/auth.module';
+import { MemberModule } from '../member/member.module';
 
 @Module({
   imports: [
@@ -11,7 +16,12 @@ import OrderSchema from '../../schemas/Order.model';
         name: 'Order',
         schema: OrderSchema,
       },
+      { name: 'OrderItem', schema: OrderItemSchema },
+      { name: 'Product', schema: ProductSchema },
+      { name: 'Member', schema: MemberSchema },
     ]),
+    AuthModule,
+    MemberModule,
   ],
   providers: [OrderResolver, OrderService],
   exports: [OrderService],

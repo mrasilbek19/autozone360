@@ -1,5 +1,48 @@
 # Next steps
 
+## Latest state — simple Express-style order writes, 2026-10-10
+
+The user explicitly approved removing transactions. OrderService now has only createOrder, recordOrderItem, getMyOrders and updateOrder. Validation belongs to existing DTOs/GraphQL/schemas; active member/shop, one-shop ownership, database prices, conditional stock and forward-status checks remain. Item writes use map/Promise.all/create, and points reuse the original MemberService statistics method. Shipping/pickup rules are unchanged. Repeated product lines are allowed.
+
+Both backend TypeScript checks, API build and all 30 tests pass. GraphQL contract checks are offline. No live DB, real competing checkout or HTTP/e2e testing was run.
+
+Operational follow-up, separately scoped:
+
+- Account for the user-approved separate-write behavior: an item failure can leave an incomplete order; a stock/point failure can leave PROCESS and earlier stock writes committed. Same-status retries do not repair these states. No rollback or recovery workflow exists; review/reconcile failures before treating PROCESS as a completed purchase.
+- Conditional status claiming prevents duplicate transition effects; test this and stock contention against an isolated database if deployment verification is requested.
+- Existing address-string records still need the separately reviewed delivery-price/address/fulfillment data migration. Frontend pickup/delivery UI, payment verification, cancellation/restocking and create-request idempotency remain separate work.
+
+Earlier transaction/atomicity claims below describe superseded implementations and must not be treated as current guarantees.
+
+## Latest state — delivery price/address and pickup complete, 2026-10-10
+
+OrderDeliveryType now supports PICKUP / DELIVERY, default DELIVERY. orderDelivery is a numeric USD fee; orderAddress is separate and required only for delivery. Pickup shipping is free. Delivered CHAIR/DESK orders cost 15 once per order; other delivery costs 5 below subtotal 100 and is free at or above 100. orderTotal includes shipping. The same service methods, transactions, ownership rules, stock updates and MemberService points behavior are preserved.
+
+Both app TypeScript checks/builds and all 24 currently present tests pass. GraphQL schema/input/output validation is covered offline. No live MongoDB, concurrent checkout or HTTP/e2e test was run.
+
+Follow-up work:
+
+- Update frontend creation inputs to orderDeliveryType and orderAddress; offer pickup/delivery in the UI. Display orderDelivery as the fee and orderTotal as the inclusive total. Clients cannot submit either price. No frontend source was changed here.
+- Review and migrate old order records before reading them through the new contract. Move old address strings from orderDelivery to orderAddress, establish the correct numeric fee and populate fulfillment type. Do not guess historical charges or execute a live migration automatically.
+- Verify transaction-capable topology, checkout rollback and concurrency against an isolated database. Payment confirmation, create-request idempotency, cancellation/restocking and shop/admin fulfillment remain separate work.
+- Event behavior and wider catalog approval enforcement remain outside this task. Preserve guards and existing architecture.
+
+Earlier order-address-only and product-only-total records below are historical and superseded by this section.
+
+## Latest state — order flow implemented, 2026-10-09
+
+The new user request authorized adapting Perfumia's order flow. createOrder, getMyOrders and updateOrder now exist using NestJS GraphQL and existing schemas. User-selected pricing preserves string delivery addresses and product-only totals. OrderItem is registered; orders enforce one shop, server prices, active buyer/shop, ownership and PAUSE → PROCESS → FINISHED. Transactional PROCESS updates deduct stock and award one point; same-status retries do not repeat effects. Events remain scaffolds. Earlier order-scaffold-only records below are historical.
+
+Both app TypeScript checks, API/batch builds and all 32 tests pass. Offline schema/module wiring is validated. No live DB, transaction rollback/concurrency or HTTP/e2e verification was performed.
+
+Follow-up work needs separately scoped authorization:
+
+- Verify transaction-capable MongoDB topology and test multi-item rollback, concurrent PROCESS and competing-stock behavior against an isolated database before deployment. No database configuration was modified.
+- Integrate the frontend using the new inputs documented in COMPLETED_TASKS. Input prices/totals/owner IDs are not accepted. PAUSE is not a stock reservation; processing may fail on availability.
+- Decide payment confirmation/fulfillment permissions before treating PROCESS as paid. There is currently no payment provider or webhook; the buyer requests the status transition, matching the reference ownership flow.
+- Decide create-request idempotency, cancellation/restocking and shop/admin order management. Existing FINISHED enum is retained; Perfumia's DELETE state and pricing promotions were not imported.
+- Event/participant services, wider catalog shop-approval enforcement, uploads and private chat remain outside this task. Preserve guard files and existing architecture.
+
 ## Latest scaffold status — 2026-10-09
 
 EventModule and OrderModule, each with a resolver and service, are created under components and imported by ComponentsModule. Existing Event/Order schemas are registered. Both app TypeScript checks, API build, all 5 currently present tests and an offline DI smoke check pass.

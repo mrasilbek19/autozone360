@@ -1,5 +1,39 @@
 # Backend migration: Nestar → Gamenix
 
+## OrderService simplified to the Express flow — 2026-10-10
+
+The user requested only the original four methods and explicitly chose to remove MongoDB transactions. This latest instruction supersedes earlier transaction-preservation decisions. OrderService now has createOrder, recordOrderItem, getMyOrders and updateOrder only. Removed sessions/withTransaction, assertActiveMember, safe-integer/finite-number checks, duplicate-line Set validation and service-level validation already supplied by DTOs/schemas. Removed the earlier optional session argument from MemberService.memberStatsEditor because no caller needs it; its original statistics implementation is restored.
+
+Creation uses find, map, reduce, create and recordOrderItem. Item persistence uses map/Promise.all with individual create calls, matching Perfumia. DTOs/GraphQL validate delivery choice, address, quantities, IDs and cart limits; schemas validate persisted data. Repeated product lines are now accepted and included in totals. Kept current ACTIVE member/SHOP checks inline, single-shop enforcement, database prices, conditional stock deductions, ownership and PAUSE → PROCESS → FINISHED transitions. Delivery/pickup fields and pricing remain unchanged.
+
+To prevent repeat PROCESS stock/points effects without sessions, updateOrder conditionally claims the status transition before its stock and MemberService writes. Competing requests cannot both claim the old state. This is deliberately the one ordering difference from Perfumia's final status update. Writes are separate: creation can leave an order with incomplete items; stock/point failure can leave PROCESS set and earlier stock changes committed. Same-state retries do not repair partial failures; reconciliation is manual. No rollback, recovery workflow, payment integration or live database change was added.
+
+Validation: API/batch TypeScript checks, API build and all 30 tests across 2 suites pass. Offline tests cover shipping, duplicate lines, DTO/schema/GraphQL contracts, conditional stock, repeat/competing status requests and the documented partial-write limitation. No live MongoDB/concurrency or HTTP/e2e testing was performed.
+
+## Delivery price, address and fulfillment — 2026-10-10
+
+COMPLETED: the user clarified that orderDelivery is the delivery price and requested separate address and pickup/delivery options. This supersedes the 2026-10-09 address interpretation below. Order schema/output DTO now contain numeric nonnegative orderDelivery, string orderAddress and registered OrderDeliveryType PICKUP / DELIVERY. DELIVERY is the default; its address is required by both service and schema validation. PICKUP may omit the address, so the GraphQL address field is nullable.
+
+User-confirmed USD rules, applied once per order: pickup costs 0; delivery containing any CHAIR or DESK (the catalog's table category) costs 15 regardless of subtotal; other delivery costs 5 below a product subtotal of 100 and 0 at or above 100. A mixed same-shop furniture order uses the 15 fee. The server computes fees from product categories and quantities; customers cannot supply orderDelivery or orderTotal. orderTotal is the product subtotal plus delivery, rounded to two decimal places. No discount was added.
+
+OrderInput accepts orderDeliveryType, orderAddress and orderItems. Method names and existing item persistence, history, status/stock/points and authorization logic are preserved; only createOrder adds the fulfillment checks and a simple fee calculation. Existing transaction handling remains. OrderUpdate stays a status-only command.
+
+Validation: both backend TypeScript checks and both builds pass; all 24 tests pass across 2 suites, including 19 delivery/schema/DTO/GraphQL tests. No live MongoDB, concurrent checkout or HTTP/e2e tests were run. Existing documents with an address string in orderDelivery need a reviewed migration to orderAddress, numeric delivery price and fulfillment type before reuse; no records were migrated and historical fees must not be guessed.
+
+## Order flow adapted from Perfumia — 2026-10-09
+
+The user authorized adapting `/Users/asilbek/Desktop/perfumia/src/models/Order.service.ts` to Gamenix using the existing NestJS module/resolver/service style. The reference repository was read only. This supersedes earlier statements that orders are scaffolds only; events remain scaffolds.
+
+OrderModule now registers Order, OrderItem, Product and Member models and imports the existing AuthModule. OrderResolver exposes authenticated `createOrder(input: OrderInput)`, `getMyOrders(input: OrdersInquiry)` and `updateOrder(input: OrderUpdate)`. Identity comes from AuthMember, following other components. No guard, authentication, product service, event, community or database configuration was changed. Schemas remain in their existing locations and were not modified.
+
+The user explicitly chose to preserve the ER fields: `orderDelivery` is the delivery address, `orderTotal` is the rounded sum of server-side product prices times quantities. Perfumia's discount, delivery charge and extra subtotal/discount fields are not copied. Order creation derives the shop from products, rejects mixed shops, unavailable/deleted products, invalid quantities and duplicate lines, checks current ACTIVE buyer and ACTIVE SHOP records, snapshots item prices, and atomically writes the PAUSE order and its items.
+
+The buyer can list their own orders, optionally filter by status and paginate (maximum 100); results include orderItems and current productData. The buyer can update only their own order, following PAUSE → PROCESS → FINISHED. PROCESS rechecks active shop, product ownership/status and sufficient stock, then conditionally decrements stock and awards the buyer one point as in Perfumia. Same-status retries do not repeat deductions/rewards. Invalid/backward/skipped transitions are rejected. No DELETE state, cancellation/restocking, shop/admin order management or payment verification was introduced.
+
+MongoDB transactions cover order/item creation and the complete status/stock/reward update. A replica set or sharded cluster supporting transactions is required; there is no unsafe nontransactional fallback. PAUSE does not reserve stock, so processing can fail if another order consumes it. PROCESS is a buyer-requested status, not proof of payment. New createOrder requests are not deduplicated by an idempotency key.
+
+Validation: both backend TypeScript checks, API and batch builds, and 32 tests across 3 suites pass. GraphQL schema generation and real OrderModule DI are tested offline. No live MongoDB transaction, concurrent checkout or HTTP/e2e test was performed; mocked failure/session tests do not prove database rollback or deployment topology. Existing catalog SHOP approval enforcement remains a separate unresolved issue; the current-member checks here apply only to new order operations.
+
 ## Event and order scaffolding — 2026-10-09
 
 The user requested component modules with resolvers/services matching existing style. Added `components/event/event.{module,resolver,service}.ts` and `components/order/order.{module,resolver,service}.ts` under the existing API src directory. ComponentsModule imports EventModule and OrderModule. Each registers its existing primary Mongoose schema, provides its resolver/service and exports its service; services inject Model<Event>/Model<Order>, and resolvers inject the corresponding service.

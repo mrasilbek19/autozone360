@@ -1,6 +1,8 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
-import { OrderStatus } from '../../enums/order.enum';
+import { OrderDeliveryType, OrderStatus } from '../../enums/order.enum';
+import { OrderItem } from '../order-item/order-item';
+import { Product } from '../product/product';
 
 @ObjectType()
 export class Order {
@@ -10,8 +12,14 @@ export class Order {
     @Field(() => Number)
     orderTotal: number;
 
-    @Field(() => String)
-    orderDelivery: string;
+    @Field(() => Number)
+    orderDelivery: number;
+
+    @Field(() => String, { nullable: true })
+    orderAddress?: string;
+
+    @Field(() => OrderDeliveryType)
+    orderDeliveryType: OrderDeliveryType;
 
     @Field(() => OrderStatus)
     orderStatus: OrderStatus;
@@ -27,4 +35,11 @@ export class Order {
 
     @Field(() => Date)
     updatedAt: Date;
+
+    /** From aggregation **/
+    @Field(() => [OrderItem], { nullable: true })
+    orderItems?: OrderItem[];
+
+    @Field(() => [Product], { nullable: true })
+    productData?: Product[];
 }
