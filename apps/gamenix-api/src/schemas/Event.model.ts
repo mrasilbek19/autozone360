@@ -69,6 +69,11 @@ const EventSchema = new Schema(
             required: true,
         },
 
+        deletedAt: {
+            type: Date,
+            default: null,
+        },
+
     },
     { timestamps: true, collection: 'events' },
 );

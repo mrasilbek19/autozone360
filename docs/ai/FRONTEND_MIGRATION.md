@@ -1,6 +1,20 @@
 # Frontend migration plan
 
-## Backend contract update — ER Phase 1
+## Current Events contract — 2026-10-10
+
+Backend Events operations now exist; frontend work is still NOT STARTED. Historical ER-only descriptions below are superseded. Checkout operations also exist; follow current order decisions rather than the historical definition-only snapshot.
+
+Queries: getEvents(input: EventsInquiry), getEvent(eventId: String), getMyEvents(input: ShopEventsInquiry), getMyRegistrations(input: EventParticipantsInquiry), getEventParticipants(eventId: String, input: EventParticipantsInquiry), getAllEventsByAdmin(input: AllEventsInquiry). Lists return list and metaCounter [{ total }], with an empty counter array when no results match.
+
+Event inquiries accept page (>=1), limit (1–100), optional sort (createdAt/updatedAt/eventDate/eventStart/eventEnd), direction (ASC/DESC), and search { eventType, eventStatus, eventOrganizer }. getMyEvents always uses authenticated organizer ownership. Shop/admin inquiries accept includeDeleted, default false. Participant inquiries use page/limit, optional createdAt/updatedAt sorting, direction and search { eventId, participantStatus }; getEventParticipants fixes its scope to the eventId argument and checks ownership/ADMIN.
+
+Mutations: createEvent(input: EventInput), updateEvent(input: EventUpdate), finishEvent(eventId), removeEvent(eventId), registerEvent(input: { eventId }), cancelEventRegistration(eventId), updateEventParticipant(input: { _id, participantStatus }), updateEventByAdmin(input: EventUpdate), removeEventByAdmin(eventId). IDs use GraphQL String. Applicant/organizer identity is server controlled; new applications are PENDING. Review accepts only REGISTERED or REJECTED, for pending applicants.
+
+Event fields/types are unchanged except nullable deletedAt in output. Creation defaults PAUSED; explicit PROCESS is allowed. Owners activate/pause via updateEvent and finish via finishEvent. FINISHED cannot reopen. eventDate is the scheduled date; eventStart/eventEnd remain complete DateTime values with timezone offsets. Applications/reviews close at eventStart. PENDING/REGISTERED may cancel before start, including while PAUSED; started/finished/deleted events reject cancellation. CANCELLED reapplication reuses its ID as PENDING; REJECTED cannot reapply. Only REGISTERED occupies capacity; full events may still receive pending applications. History includes optional eventData/memberData and survives soft deletion.
+
+Protected operations use existing Bearer-token role guards plus current database member checks in EventService. Event images still need integration: Axios must use the existing GraphQL multipart upload contract and pass its returned path as eventImage. No REST image endpoint or uploads/event directory exists yet. No upload or frontend code was changed.
+
+## Historical backend contract — ER Phase 1
 
 Frontend work remains NOT STARTED. The backend catalog source now uses Product fields/types/operations and ten gaming categories. Clients must use `productName`, `productPrice`, `productLeftCount` and PRODUCT targets; housing inputs/filters are removed. ProductStatus is PAUSE / PROCESS / FINISHED, with deletion represented by `deletedAt`. Member outputs expose `memberProducts` and roles USER / ADMIN / SHOP.
 

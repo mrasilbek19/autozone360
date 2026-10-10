@@ -1,5 +1,17 @@
 # Architectural decisions
 
+## Approved Events lifecycle and consistency — 2026-10-10
+
+- Keep participant operations in the existing Event module/service/resolver, and schemas in src/schemas. Register existing Member/EventParticipant models and AuthModule. Do not edit guards/JWT, orders, catalog or community.
+- Assign organizer/applicant identity from authentication. Require current ACTIVE SHOP for ownership management, ACTIVE USER for applications/history, ACTIVE ADMIN for cross-shop moderation. EventService queries current database role/status locally.
+- Preserve PAUSED / PROCESS / FINISHED. Default creation PAUSED; permit explicit PROCESS, reject FINISHED creation. Owners activate/pause via updateEvent and finish via finishEvent; ADMIN may finish via updateEventByAdmin. Finished events are read-only except soft removal. Add only nullable deletedAt and preserve participant history.
+- User-confirmed dates: eventDate is the scheduled date; eventStart/eventEnd are actual start/end timestamps. Keep DateTime types. Start < end; creation/activation/rescheduling requires a future start. Applications/reviews close at eventStart. PENDING/REGISTERED cancellation is allowed before start, including while PAUSED, but closes at start/finish/deletion.
+- Add PENDING and REJECTED to ParticipantStatus; default new records PENDING. Review only PENDING as REGISTERED/REJECTED. CANCELLED may reapply as PENDING on the same document; REJECTED cannot reapply. Clients cannot choose applicant identity or initial status. Existing stored REGISTERED records remain unchanged; no data migration ran.
+- Count only REGISTERED toward capacity; pending applications may still wait when confirmed places are full. Keep the unique event/member index and avoid a counter field. Increment existing event __v inside a transaction before counting/updating; coordinate registration, cancellation, review and event changes through this write. Lock-only writes preserve event updatedAt. Capacity reduction cannot go below confirmed participants.
+- The user approved transactions specifically for Events. withTransaction retries write conflicts; replica set/sharded MongoDB is required, with no separate-write fallback. OrderService retains the earlier deliberate separate writes. Offline mocks do not prove database concurrency or rollback.
+- Public lists/details omit deleted events. Owner/admin lists support includeDeleted; own registrations and authorized participant lists retain history. Lists use list/metaCounter, stable allowlisted sorting, nested filters and page sizes up to 100.
+- Keep eventImage as an uploaded path. Existing uploader needs the separately scoped event directory/target/Axios integration. Do not add upload systems, brackets, automated winners or prize distribution.
+
 ## Refactoring style preference — 2026-10-10
 
 The user explicitly requested that future refactoring follow their existing service coding style. Read nearby services first, especially ProductService, MemberService, BoardArticleService, CommentService and LikeService. Follow their four-space indentation, public/private async methods, input destructuring, search/match objects, target/result names, explicit model types where useful and readable Mongoose chains ending in exec(). Preserve existing business rules and error responses when making style changes. Use existing methods and dependency injection; avoid new helpers, layers or validation without a concrete need. The accepted separate-write order behavior remains unchanged.

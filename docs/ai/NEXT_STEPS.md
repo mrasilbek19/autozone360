@@ -1,5 +1,17 @@
 # Next steps
 
+## Current Events state and follow-up — 2026-10-10
+
+Events are implemented, replacing historical scaffold-only descriptions below. SHOP management, USER pending applications/cancellation/history, owner/ADMIN review, ADMIN moderation, queries and soft deletion are complete in source. ParticipantStatus is PENDING / REGISTERED / REJECTED / CANCELLED. See COMPLETED_TASKS for exact files/checks, FRONTEND_MIGRATION for the contract and DECISIONS for lifecycle/capacity rules.
+
+Both app TypeScript checks/builds pass; 88 offline tests pass, including 55 event cases. Five live MongoDB tests are skipped. Full API schema generation and EventModule DI pass offline. Remaining verification/integration, separately scoped:
+
+- Set EVENT_TEST_MONGO_URI for an isolated transaction-capable test server and run the event integration suite. It creates/drops a fresh gamenix_event_test_* database only. Verify concurrent last-place approvals, capacity decreases, duplicates, rollback and history queries. Mocks are not deployment proof. Preserve Events transactions and OrderService's separate writes.
+- Confirm the unique eventId/memberId index exists in deployment; review legacy duplicates before index installation. Existing REGISTERED records remain approved; no records were changed by this task. New applications default PENDING.
+- Integrate event images with the existing uploader: provide uploads/event, restrict target to approved directories and confirm the Axios GraphQL-multipart request/returned-path contract. No REST image endpoint exists in this repository. Upload code was not changed.
+- Frontend work has not started. Send complete DateTime timestamps; applications/reviews close at eventStart. Use the documented approval states and includeDeleted history options.
+- No brackets, automated winners/prizes, payment, new modules, authentication fixes or catalog/order changes were authorized by this completion. Stop after Events; older prompts do not authorize further work.
+
 ## Latest state — simple Express-style order writes, 2026-10-10
 
 The user explicitly approved removing transactions. OrderService now has only createOrder, recordOrderItem, getMyOrders and updateOrder. Validation belongs to existing DTOs/GraphQL/schemas; active member/shop, one-shop ownership, database prices, conditional stock and forward-status checks remain. Item writes use map/Promise.all/create, and points reuse the original MemberService statistics method. Shipping/pickup rules are unchanged. Repeated product lines are allowed.

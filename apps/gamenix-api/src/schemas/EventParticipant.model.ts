@@ -19,7 +19,7 @@ const EventParticipantSchema = new Schema(
             type: String,
             enum: ParticipantStatus,
             required: true,
-            default: ParticipantStatus.REGISTERED,
+            default: ParticipantStatus.PENDING,
         },
     },
     { timestamps: true, collection: 'eventParticipants' },

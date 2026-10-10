@@ -1,6 +1,10 @@
 # Reusable Codex prompts
 
-## Current scope override — ER Phase 1
+## Current scope override — Events completed, 2026-10-10
+
+The approved Events implementation is complete in source: SHOP management, USER applications/cancellation/history, owner/ADMIN review, ADMIN moderation, capacity coordination and soft deletion. Read current handoff sections first. Do not repeat this work or infer authorization to change another module. ParticipantStatus is PENDING / REGISTERED / REJECTED / CANCELLED, with the existing unique event/member index. Events-only transactions were explicitly approved; OrderService remains separate writes. Five live DB tests are opt-in and have not run; upload event-directory/target integration remains separate work. Frontend work has not started.
+
+## Historical scope override — ER Phase 1
 
 The historical prompts below are reference material, not instructions to start more work. Property → Product and USER/ADMIN/SHOP data migration are now implemented in source. Keep schemas in `src/schemas` and app paths `gamenix-api` / `gamenix-batch`. Preserve `getAgents`, `AgentsInquiry` and `availableAgentSorts` names.
 

@@ -1,5 +1,23 @@
 # Backend migration: Nestar → Gamenix
 
+## Events and participant approval implemented — 2026-10-10
+
+Implemented the approved Events scope in the existing Event component. This supersedes earlier event-scaffold-only and REGISTERED/CANCELLED-only descriptions. Schemas remain in src/schemas. Auth, guards, ProductService, OrderService, MemberService and community code are unchanged.
+
+ACTIVE SHOP members create and manage their own events, with organizer assigned from authentication. ACTIVE USER members apply as PENDING, cancel before start and view their history. The owning ACTIVE SHOP or ACTIVE ADMIN approves/rejects pending applicants. EventService checks current Member role/status in addition to the existing role guards. ADMIN has separate event listing/update/removal operations and can inspect/review participants across shops.
+
+EventStatus remains PAUSED / PROCESS / FINISHED. Creation defaults PAUSED, permits explicit PROCESS and rejects FINISHED. Owners use updateEvent for PAUSED ↔ PROCESS and finishEvent for PAUSED/PROCESS → FINISHED. ADMIN updates may also finish events. Finished events cannot reopen or be edited, but can be soft-removed. Nullable deletedAt is the only added persisted event field. Public queries exclude deleted events; owner/admin lists can opt into them. Participant history survives deletion.
+
+User-confirmed dates: eventDate is the scheduled date; eventStart/eventEnd are start/end timestamps. Existing GraphQL DateTime types remain: clients send complete timestamps with timezone offsets. Start must precede end; creation, activation and rescheduling require a future start. Applications/reviews close at eventStart. PENDING/REGISTERED cancellation is allowed before start, including while PAUSED, but closes at start/finish/deletion. CANCELLED → PENDING reuses the record and needs approval again; REJECTED cannot reapply. Pending applications may wait even when confirmed capacity is full.
+
+Only REGISTERED counts toward eventMaxParticipants. Event registration, cancellation, review and management changes use transactions. Incrementing existing event __v coordinates competing changes before counting capacity; withTransaction retries write conflicts. Lock-only writes do not change event updatedAt. Capacity cannot be reduced below the confirmed count. No counter field, collection, dependency or database configuration was added; the existing unique (eventId, memberId) index remains. Replica set/sharded MongoDB is required; no unsafe fallback exists. This events-only approval does not restore transactions to orders.
+
+Queries: getEvents, getEvent, getMyEvents, getMyRegistrations, getEventParticipants, getAllEventsByAdmin. Mutations: createEvent, updateEvent, finishEvent, removeEvent, registerEvent, cancelEventRegistration, updateEventParticipant, updateEventByAdmin, removeEventByAdmin. Lists follow list/metaCounter, page/limit (1–100), allowlisted sorting and nested filters. See FRONTEND_MIGRATION for the contract.
+
+Image integration remains incomplete: existing imageUploader/imagesUploader use GraphQL multipart, not REST, and no uploads/event directory exists. Event operations accept the uploaded path as eventImage. Minimal separate integration: provide uploads/event, restrict upload target to approved directories and confirm Axios uses the existing multipart contract and returned path. Upload code/directories were not changed.
+
+Validation: both app TypeScript checks/builds PASS; 55 offline event tests PASS; full Jest run has 88 passing tests across 3 suites. Full API schema generation PASS (8 resolvers, 25 queries, 33 mutations); real EventModule DI resolves offline. Five opt-in integration tests were skipped because EVENT_TEST_MONGO_URI is not configured. No live DB, HTTP/e2e, upload or deployment-topology verification ran. Existing authentication/configuration issues remain outside this increment; this is not a production-readiness claim.
+
 ## OrderService simplified to the Express flow — 2026-10-10
 
 The user requested only the original four methods and explicitly chose to remove MongoDB transactions. This latest instruction supersedes earlier transaction-preservation decisions. OrderService now has createOrder, recordOrderItem, getMyOrders and updateOrder only. Removed sessions/withTransaction, assertActiveMember, safe-integer/finite-number checks, duplicate-line Set validation and service-level validation already supplied by DTOs/schemas. Removed the earlier optional session argument from MemberService.memberStatsEditor because no caller needs it; its original statistics implementation is restored.

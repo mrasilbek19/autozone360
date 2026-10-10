@@ -1,5 +1,40 @@
 # Completed tasks and evidence ledger
 
+## Events and EventParticipant operations — 2026-10-10
+
+COMPLETED after approval of the Events proposal and eventStart deadline clarification. Working tree was clean before this increment. Auth/guards, ProductService, OrderService, MemberService and community code are unchanged.
+
+Modified source files, relative to apps/gamenix-api/src:
+
+- components/event/event.module.ts: register existing EventParticipant/Member models and import AuthModule.
+- components/event/event.resolver.ts: 6 queries and 9 mutations, existing role decorators and AuthMember identity.
+- components/event/event.service.ts: SHOP management, public/owner/admin queries, USER applications/cancellation/history, SHOP/ADMIN review, current-member authorization and transactional capacity coordination.
+- libs/dto/event/event.input.ts: nested filters, pagination, sorting and shop/admin includeDeleted inquiries; organizer stays internal.
+- libs/dto/event/event.ts: nullable deletedAt and Events list/metaCounter wrapper.
+- libs/dto/event-participant/event-participant.input.ts: registration exposes eventId only; add participant inquiries and nested status/event filters.
+- libs/dto/event-participant/event-participant.update.ts: require REGISTERED or REJECTED for review.
+- libs/dto/event-participant/event-participant.ts: list/metaCounter wrapper and optional eventData/memberData history details.
+- libs/enums/participant.enum.ts: add PENDING/REJECTED, preserving REGISTERED/CANCELLED.
+- schemas/Event.model.ts: add deletedAt with null default; existing fields/collection remain.
+- schemas/EventParticipant.model.ts: default new applications PENDING; refs and unique pair index remain.
+- libs/config.ts: add availableEventSorts.
+
+Created components/event/event.service.spec.ts with 55 offline cases covering roles, ownership, required fields/dates/capacity, lifecycle, application/review, cancellation/reapplication, duplicate errors, moderation, list pipelines, DTO/schema contracts, GraphQL generation and real module DI. Mocks test business decisions/session wiring, not MongoDB isolation.
+
+Created components/event/event.integration.spec.ts with 5 opt-in cases for concurrent duplicates/approvals, capacity-decrease contention, rollback and actual filter/pagination/history queries. Requires EVENT_TEST_MONGO_URI pointing to a transaction-capable test server; creates and drops only a fresh gamenix_event_test_* database. Never uses the application's configured database URI.
+
+Validation executed:
+
+- npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit — PASS.
+- npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit — PASS.
+- npm run build — PASS (API).
+- ./node_modules/.bin/nest build gamenix-batch — PASS.
+- ./node_modules/.bin/jest --runInBand --silent — PASS: 88 tests / 3 suites; 5 integration tests / 1 suite skipped because no dedicated URI is configured. Includes 55 event tests and 33 existing tests.
+- Full offline API GraphQL schema generation — PASS: 8 resolvers / 25 queries / 33 mutations. Real EventModule DI also PASS in the event suite.
+- git diff --check — PASS.
+
+Updated all six docs/ai handoff files, preserving earlier migration history and decisions. No live DB, HTTP/e2e or image upload tests ran; concurrency/rollback/topology remain unverified against MongoDB. Event-image directory/target integration remains separate work, as described in BACKEND_MIGRATION. No data migration, dependency installation, auto-fixing lint, schema relocation or commit was performed. Stop after Events; other modules require a new request.
+
 ## OrderService aligned with existing services — 2026-10-10
 
 Reviewed ProductService, MemberService, BoardArticleService, CommentService and LikeService. Refactored all four existing OrderService methods to use their formatting, input destructuring, search/match objects, targetOrder/result naming, explicit model result types and fluent Mongoose queries ending in exec(). Expanded the aggregation lookups and item data for readability; named the product-only sum subtotal. Kept existing exception classes/messages, query filters, write ordering, shipping, ownership, status/stock/points behavior and separate writes. No helpers, methods, transactions, validations, dependencies or GraphQL changes were added. Existing tests required no changes.
