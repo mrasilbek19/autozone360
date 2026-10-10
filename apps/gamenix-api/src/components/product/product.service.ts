@@ -26,6 +26,7 @@ export class ProductService {
     ) { }
 
     public async createProduct(input: ProductInput): Promise<Product> {
+        await this.memberService.assertActiveShop(input.memberId);
         try {
             const result = await this.productModel.create(input);
             await this.memberService.memberStatsEditor({
@@ -113,6 +114,7 @@ export class ProductService {
         memberId: ObjectId,
         input: ProductUpdate,
     ): Promise<Product> {
+        await this.memberService.assertActiveShop(memberId);
         let { productStatus, soldAt, deletedAt } = input;
 
         const search: T = {
@@ -234,6 +236,7 @@ export class ProductService {
         memberId: ObjectId,
         input: ShopProductsInquiry,
     ): Promise<Products> {
+        await this.memberService.assertActiveShop(memberId);
         const { productStatus } = input.search;
 
         const match: T = {

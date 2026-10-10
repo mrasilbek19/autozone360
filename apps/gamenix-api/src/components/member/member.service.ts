@@ -27,6 +27,13 @@ export class MemberService {
         private likeService: LikeService,
     ) { }
 
+    public async assertActiveShop(memberId: ObjectId): Promise<void> {
+        const shop = await this.memberModel.findOne({
+            _id: memberId, memberType: MemberType.SHOP, memberStatus: MemberStatus.ACTIVE,
+        }).lean().exec();
+        if (!shop) throw new BadRequestException('An active approved shop is required');
+    }
+
     public async signup(input: MemberInput): Promise<Member> {
         const memberType = input.memberType ?? MemberType.USER;
         if (![MemberType.USER, MemberType.SHOP].includes(memberType)) {
@@ -96,7 +103,9 @@ export class MemberService {
         const search: T = {
             _id: targetId,
             memberStatus: {
-                $in: [MemberStatus.ACTIVE, MemberStatus.BLOCK],
+                $in: String(memberId) === String(targetId)
+                    ? [MemberStatus.ACTIVE, MemberStatus.BLOCK, MemberStatus.PENDING, MemberStatus.DELETE]
+                    : [MemberStatus.ACTIVE, MemberStatus.BLOCK],
             },
         };
 

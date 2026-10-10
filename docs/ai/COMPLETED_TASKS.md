@@ -442,3 +442,10 @@ No domain refactor, schema relocation, dependency installation or database chang
 | Package/lockfile root names and Nest project path consistency | PASS |
 
 npm emitted a sandbox warning about writing its log directory; compilation/builds still exited successfully. No runtime/GraphQL/e2e tests were executed for this naming-only change.
+
+
+## Full-stack integration blockers — 2026-10-10
+
+The latest full-stack request authorizes minimal integration fixes beyond Events. Guards, JWT logic, schemas and operation names are preserved. MemberService.assertActiveShop checks current role/status for createProduct, updateProduct and getShopProducts. getMember permits PENDING/DELETE only for the signed-in member reading their own profile. Upload targets are allowlisted (member/article/property/product/event); directories are created before existing multipart writes. Validation is recorded in frontend docs/INTEGRATION.md; source changes alone do not establish live correctness. No database records migrated.
+
+JWT environment integration correction — 2026-10-10: direct inspection of normal AppModule import confirmed JwtModule.register captured the literal "undefined" before ConfigModule loaded .env. Changed only registration to registerAsync/useFactory so the existing SECRET_TOKEN is read at Nest initialization. Token payload/signing/verification and all guards remain unchanged. Existing tokens issued with the previous misconfiguration require login again. No secret values were printed or modified.

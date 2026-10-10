@@ -15,6 +15,7 @@ import { WithoutGuard } from '../auth/guards/without.guard';
 import { Message } from '../../libs/enums/common.enum';
 import { GraphQLUpload, FileUpload } from 'graphql-upload';
 import { createWriteStream } from 'fs';
+import { mkdir } from 'fs/promises';
 
 @Resolver()
 export class MemberResolver {
@@ -111,6 +112,13 @@ export class MemberResolver {
     }
 
 
+    private async prepareUploadTarget(target: String): Promise<void> {
+        if (!['member', 'article', 'property', 'product', 'event'].includes(String(target))) {
+            throw new Error('Invalid upload target');
+        }
+        await mkdir(`uploads/${target}`, { recursive: true });
+    }
+
     /* Uploader */
 
     @UseGuards(AuthGuard)
@@ -126,6 +134,7 @@ export class MemberResolver {
         const validMime = validMimeTypes.includes(mimetype);
         if (!validMime) throw new Error(Message.PROVIDE_ALLOWED_FORMAT);
 
+        await this.prepareUploadTarget(target);
         const imageName = getSerialForImage(filename);
         const url = `uploads/${target}/${imageName}`;
         const stream = createReadStream();
@@ -150,6 +159,7 @@ export class MemberResolver {
     ): Promise<string[]> {
         console.log('Mutation: imagesUploader');
 
+        await this.prepareUploadTarget(target);
         const uploadedImages = [];
         const promisedList = files.map(async (img: Promise<FileUpload>, index: number): Promise<Promise<void>> => {
             try {
