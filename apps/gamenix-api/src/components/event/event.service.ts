@@ -49,6 +49,7 @@ export class EventService {
         const result = await this.eventModel
             .findOne({
                 _id: shapeIntoMongoObjectId(eventId),
+                eventStatus: EventStatus.PROCESS,
                 deletedAt: null,
             })
             .exec();
@@ -59,7 +60,7 @@ export class EventService {
     }
 
     public async getEvents(input: EventsInquiry): Promise<Events> {
-        return await this.findEvents(input, { deletedAt: null });
+        return await this.findEvents(input, { eventStatus: EventStatus.PROCESS, deletedAt: null });
     }
 
     public async getMyEvents(
@@ -444,7 +445,10 @@ export class EventService {
         const { page, limit, search } = input;
 
         if (search?.eventType) match.eventType = search.eventType;
-        if (search?.eventStatus) match.eventStatus = search.eventStatus;
+        if (search?.eventStatus) {
+            if (match.eventStatus) match.$and = [{ eventStatus: search.eventStatus }];
+            else match.eventStatus = search.eventStatus;
+        }
 
         // An organizer filter cannot replace getMyEvents ownership.
         if (search?.eventOrganizer && !match.eventOrganizer) match.eventOrganizer = shapeIntoMongoObjectId(search.eventOrganizer);

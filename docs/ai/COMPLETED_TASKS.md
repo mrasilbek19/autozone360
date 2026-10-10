@@ -1,5 +1,13 @@
 # Completed tasks and evidence ledger
 
+## Public events restricted to active status — 2026-10-10
+
+Public getEvents/getEvent now require PROCESS and deletedAt: null. Client status filters intersect the public restriction, so conflicting filters return an empty list/metaCounter. Shop/admin management and registration history are unchanged; no date filter or GraphQL input/schema change was added. This supersedes earlier descriptions of public queries excluding only deleted events.
+
+Changed components/event/event.service.ts and added components/event/event-public.spec.ts under apps/gamenix-api/src. The focused suite covers active visibility, pending/paused/finished/deleted exclusions, status-filter overrides, pagination/type filters and shop/admin visibility. Existing deleted event/order test files were left untouched.
+
+Validation: both backend TypeScript checks and npm run build PASS; npm test -- --runInBand PASS (21 tests across 2 suites, including 16 public-event tests). Existing shop/admin management paths were checked: they do not call the public getEvents/getEvent methods. Focused tests also verify pending edits, owner authorization, admin approval and rejected shop self-approval. Checks ran against the working tree, which includes the earlier uncommitted PENDING lifecycle implementation; the visibility-only commit leaves those earlier changes unstaged. No live MongoDB or HTTP/e2e verification was performed.
+
 ## Events and EventParticipant operations — 2026-10-10
 
 COMPLETED after approval of the Events proposal and eventStart deadline clarification. Working tree was clean before this increment. Auth/guards, ProductService, OrderService, MemberService and community code are unchanged.
