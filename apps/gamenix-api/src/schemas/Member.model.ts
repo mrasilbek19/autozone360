@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+import { isEmail } from 'class-validator';
 import { MemberAuthType, MemberStatus, MemberType } from '../libs/enums/member.enum';
 
 const MemberSchema = new Schema({
@@ -30,6 +31,23 @@ const MemberSchema = new Schema({
         type: String,
         index: { unique: true, sparse: true },
         required: true,
+    },
+
+    memberEmail: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        select: false,
+        validate: {
+            validator: (value: string) => value == null || isEmail(value),
+            message: 'Invalid member email',
+        },
+    },
+
+    memberEmailVerified: {
+        type: Boolean,
+        default: false,
+        select: false,
     },
 
     memberPassword: {
@@ -116,6 +134,11 @@ const MemberSchema = new Schema({
 
 },
     { timestamps: true, collection: 'members' }
+);
+
+MemberSchema.index(
+    { memberEmail: 1 },
+    { unique: true, partialFilterExpression: { memberEmail: { $type: 'string' } } },
 );
 
 export default MemberSchema;

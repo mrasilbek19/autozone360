@@ -1,5 +1,13 @@
 # Architectural decisions
 
+## Member email and verification preparation — 2026-10-13
+
+- Add optional memberEmail using the existing Member collection/schema/DTOs; normalize with trim/lowercase and validate email format. Null explicitly clears email; undefined/omitted leaves it alone. Keep existing signup and nickname/password login compatible, including email-less USER/SHOP/ADMIN documents.
+- Use a unique partial index on memberEmail with partialFilterExpression {memberEmail: {$type: 'string'}}. Missing/null values are excluded; existing nickname/phone indexes remain. Map email duplicate-key errors to a safe member-email-specific error. Do not migrate, delete or fabricate member data.
+- Default memberEmailVerified to false. Never expose it in MemberInput or MemberUpdate; reject direct service attempts too, including the existing generic admin update. Every explicit email submission resets verification to false in the same write, even if the normalized address is unchanged. Other profile/status updates preserve verification. Only separately implemented trusted verification logic may mark it true.
+- Hide both fields by default in Mongoose and protect their nullable GraphQL fields with an authenticated-owner identity check for every Member result, including nested members. Owner reads use current database values, never JWT verification status. Shop/admin list aggregates exclude the fields. Omit both from JWTs because tokens are decoded and reused in existing public socket member payloads. Existing guards and role/status behavior remain unchanged.
+- No provider or verification implementation exists in the inspected backend. This task authorizes only data, validation, privacy and supporting logic/tests. SMTP/Gmail/SendGrid/Resend, token endpoints, sending, password reset, order/payment emails, payment processing and frontend modifications require a later request. Future payment mail may contain summaries, transaction references, status and receipts, never card numbers/CVVs/payment credentials.
+
 ## Approved Events lifecycle and consistency — 2026-10-10
 
 - Keep participant operations in the existing Event module/service/resolver, and schemas in src/schemas. Register existing Member/EventParticipant models and AuthModule. Do not edit guards/JWT, orders, catalog or community.

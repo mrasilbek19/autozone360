@@ -24,6 +24,12 @@ export class Member {
     @Field(() => String)
     memberNick: string;
 
+    @Field(() => String, { nullable: true })
+    memberEmail?: string;
+
+    @Field(() => Boolean, { nullable: true })
+    memberEmailVerified?: boolean;
+
     memberPassword?: string;
 
     @Field(() => String, { nullable: true })

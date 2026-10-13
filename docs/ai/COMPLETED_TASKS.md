@@ -1,5 +1,37 @@
 # Completed tasks and evidence ledger
 
+## Member email fields and verification status — 2026-10-13
+
+Implemented the requested backend-only member email foundation after reading the four handoff files and inspecting Member schema/DTOs/service/resolver, signup/login/JWT behavior, existing uniqueness rules, shared/nested member results and dependencies. Preserved the NestJS resolver/service/module pattern and existing optional-email account behavior. No schema relocation or duplicate DTO was introduced.
+
+Modified source files, relative to apps/gamenix-api/src:
+
+- schemas/Member.model.ts: optional string memberEmail with trim/lowercase/email validation; default-false memberEmailVerified; select:false for both; unique partial email index including only strings, excluding missing/null values. Existing phone/nick indexes are unchanged.
+- libs/dto/member/member.input.ts: optional nullable memberEmail with class-transformer normalization and class-validator IsEmail for signup; no client verification field.
+- libs/dto/member/member.update.ts: the same optional normalized/validated email for existing self/admin update inputs; no client verification field or new DTO.
+- libs/dto/member/member.ts: optional nullable email and verification output fields on the existing shared Member TypeScript/GraphQL type.
+- libs/enums/common.enum.ts: safe USED_MEMBER_EMAIL error message; existing nickname/phone duplicate message remains.
+- components/member/member.service.ts: validate/normalize raw email before persistence, reject client verification writes, reset verification together with explicit email submissions/clears, enable Mongoose update validators and map email duplicate-key errors on signup/self/admin updates. Explicit backend email projection supports current owner reads. Shop/admin list aggregation excludes both private fields. Removed full shop-result/error logging that could include member email. Existing role/status restrictions, hashing, nickname/password login and statistics remain.
+- components/member/member.resolver.ts: Member field resolvers return private fields only to the authenticated owner, including nested Member data produced by aggregations; fetch current database values via the service. Anonymous/other-account fields are null. Legacy owner email is null and missing verification is false. Existing operations/guards/upload implementation remain.
+- components/auth/auth.service.ts: omit email and verification from JWT payloads, preventing new private data from appearing in decoded tokens and existing socket member broadcasts. Signing/verification/password behavior is unchanged.
+
+Added tests:
+
+- components/member/member-email.spec.ts: 61 offline cases covering DTO/schema format/normalization/optionality/index/default contracts, raw service validation and verification spoofing, duplicate-error handling on all write paths, optional-email USER/SHOP signup, USER/SHOP/ADMIN nickname/password login, same-write reset/clear/resubmission, unrelated-update preservation and backend projections. A real Nest GraphQL application schema executes existing guards, global ValidationPipe and field resolvers without opening an HTTP listener or connecting MongoDB; tests cover public member/shop/nested-product privacy, owner/legacy reads, rejected verification inputs and private-field exclusion from plain/document JWT payloads.
+- components/member/member-email.integration.spec.ts: four opt-in real-MongoDB tests for missing/null emails, concurrent normalized uniqueness, duplicate update atomicity, reset/preservation, admin clearing and legacy records. Requires MEMBER_TEST_MONGO_URI; creates/drops only a fresh gamenix_member_email_test_* database. Never uses the application database URI.
+
+Behavior: omitting memberEmail preserves it and its status; null clears it; empty/whitespace/invalid email is rejected. Every explicit email submission, including the same normalized address, resets verification=false. Authenticated owners select the fields with existing getMember(memberId: ownId). Signup/login return a token; use that token for the owner query, since those unauthenticated mutations do not authenticate field resolution. Backend verification is not implemented and normal admin updates also cannot set verification=true.
+
+Validation:
+
+- npx tsc -p apps/gamenix-api/tsconfig.app.json --noEmit — PASS.
+- npx tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit — PASS.
+- npm run build — PASS (API).
+- npm test -- --runInBand --silent — PASS: 95 tests across 4 suites; 4 MongoDB tests / 1 suite skipped because MEMBER_TEST_MONGO_URI is unset. Includes 61 new offline cases and all 34 pre-existing tests.
+- Git diff/staged scope review and git diff --check — PASS. Only task-specific source/tests and documentation additions are staged; pre-existing event/product changes, removed tests and unrelated documentation edits remain outside the commit.
+
+Updated this ledger, BACKEND_MIGRATION, DECISIONS and NEXT_STEPS with current behavior, rollout limits and later verification design. No SMTP/Gmail/provider, token endpoints, verification sending, password reset, order/payment email, payment processing, frontend changes, dependency installation or live member migration was performed. No live MongoDB/index/concurrency or HTTP/e2e test ran; offline duplicate-key mocks/index definitions do not prove deployed enforcement. Check index installation before rollout. Next verification work requires a provider plus secure single-use expiring tokens bound to the current email and trusted conditional verification writes; see NEXT_STEPS.
+
 ## Public events restricted to active status — 2026-10-10
 
 Public getEvents/getEvent now require PROCESS and deletedAt: null. Client status filters intersect the public restriction, so conflicting filters return an empty list/metaCounter. Shop/admin management and registration history are unchanged; no date filter or GraphQL input/schema change was added. This supersedes earlier descriptions of public queries excluding only deleted events.

@@ -1,5 +1,18 @@
 # Next steps
 
+## Member email verification follow-up — 2026-10-13
+
+The member email foundation is complete. Email remains optional, private and unverified by default; authenticated owners can select memberEmail/memberEmailVerified through their existing getMember query. Explicit email submissions (including an unchanged value or null removal) reset verification; omitting email preserves it. No verification/sending integration is authorized by this completion.
+
+Separately scoped follow-up:
+
+- Set MEMBER_TEST_MONGO_URI to a dedicated MongoDB test server and run member-email.integration.spec.ts. It creates/drops only a fresh gamenix_member_email_test_* database and never reads the app database URI. Four cases cover real partial-index behavior for missing/null values, concurrent normalized-email uniqueness, duplicate updates, verification resets/preservation and legacy accounts. These tests were skipped in this task; deployed MongoDB enforcement is not yet verified.
+- Confirm the partial unique index is installed successfully before rollout. If any existing documents already contain email strings, review their normalization, validity and duplicates before index creation. Do not run syncIndexes, drop indexes or mutate existing records automatically. No live migration was performed.
+- After a new request, choose a mail provider and store credentials in environment/secret configuration. Design cryptographically random, hashed-at-rest, expiring, single-use verification tokens, resend/rate limits and enumeration-safe responses. Bind tokens to member identity and the exact normalized email; atomically set memberEmailVerified=true only when that address is still current, and consume the token. Email changes/removal must invalidate prior verification attempts. Never expose or log tokens. No fake verification or token endpoint was added here.
+- Later order/receipt notifications should use the intended current verified recipient and appropriate order summaries, transaction references, payment status and receipts. Do not send card numbers, CVVs or payment credentials. Payment processing and frontend work remain separate tasks.
+
+Validation for this increment: API/batch TypeScript checks and API build PASS; all 95 offline tests PASS across 4 suites, including real Nest GraphQL field privacy/validation execution. Four MongoDB tests are skipped without the explicit test URI. Earlier unrelated event/order/catalog follow-ups below remain unchanged.
+
 ## Current Events state and follow-up — 2026-10-10
 
 Events are implemented, replacing historical scaffold-only descriptions below. SHOP management, USER pending applications/cancellation/history, owner/ADMIN review, ADMIN moderation, queries and soft deletion are complete in source. ParticipantStatus is PENDING / REGISTERED / REJECTED / CANCELLED. See COMPLETED_TASKS for exact files/checks, FRONTEND_MIGRATION for the contract and DECISIONS for lifecycle/capacity rules.

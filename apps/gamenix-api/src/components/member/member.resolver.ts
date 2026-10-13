@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { MemberService } from './member.service';
 import { InternalServerErrorException, UseGuards } from '@nestjs/common';
 import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
@@ -17,9 +17,24 @@ import { GraphQLUpload, FileUpload } from 'graphql-upload';
 import { createWriteStream } from 'fs';
 import { mkdir } from 'fs/promises';
 
-@Resolver()
+@Resolver(() => Member)
 export class MemberResolver {
     constructor(private readonly memberService: MemberService) { }
+
+    // Applies to every Member result, including members loaded through aggregation lookups.
+    @ResolveField(() => String, { nullable: true })
+    public async memberEmail(@Parent() member: Member, @AuthMember('_id') memberId: ObjectId): Promise<string | null> {
+        if (!memberId || String(memberId) !== String(member._id)) return null;
+        const result = await this.memberService.getMemberEmail(memberId);
+        return result?.memberEmail ?? null;
+    }
+
+    @ResolveField(() => Boolean, { nullable: true })
+    public async memberEmailVerified(@Parent() member: Member, @AuthMember('_id') memberId: ObjectId): Promise<boolean | null> {
+        if (!memberId || String(memberId) !== String(member._id)) return null;
+        const result = await this.memberService.getMemberEmail(memberId);
+        return result ? result.memberEmailVerified ?? false : null;
+    }
 
     @Mutation(() => Member)
     public async signup(@Args('input') input: MemberInput): Promise<Member> {

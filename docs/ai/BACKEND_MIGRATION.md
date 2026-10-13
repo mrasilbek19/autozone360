@@ -1,5 +1,15 @@
 # Backend migration: Nestar → Gamenix
 
+## Member email foundation — 2026-10-13
+
+Added optional memberEmail and default-false memberEmailVerified to the existing Member schema and GraphQL contract. Email is trimmed, lowercased and validated in DTOs, the member service and schema. A unique partial index covers string-valued emails only, excluding missing/null fields; existing nickname/phone uniqueness is unchanged. Signup remains optional-email and nickname/password login is unchanged for USER/SHOP/ADMIN. No data backfill, fake email, migration or live database write was performed.
+
+Signup, self-update and existing admin update cannot accept client verification status. Each explicit email submission, including resubmission of the same normalized value or null to clear it, writes verification=false in the same update; omitting email preserves both existing fields. No input exposes memberEmailVerified. Future trusted backend verification must bind its update to the exact current email.
+
+Both fields use Mongoose select:false. MemberResolver field resolvers return null to anonymous/other accounts across all Member results, including nested aggregation lookups. Owners read fresh private values through an explicit backend projection; legacy owners get null email/false verification. Use authenticated getMember(memberId: ownId), selecting memberEmail and memberEmailVerified. Signup/login do not establish request authentication for these fields: authenticate with the returned accessToken and query the owner profile. Shop/admin list aggregates exclude both fields; JWT payloads omit them so the existing socket member broadcasts do not carry email. Backend operations may explicitly select the private fields when authorized.
+
+Validation: both app TypeScript checks and npm run build PASS; 95 offline tests PASS across 4 suites, including 61 new member-email cases with actual Nest GraphQL resolver/guard/ValidationPipe execution. Four isolated-MongoDB integration tests are skipped because MEMBER_TEST_MONGO_URI is unset. Partial-index definition and duplicate-key handling are tested offline; deployed index enforcement and real MongoDB writes remain unverified. No email provider, verification token/process, sending, payment or frontend integration was added. See NEXT_STEPS for the later verification work.
+
 ## Events and participant approval implemented — 2026-10-10
 
 Implemented the approved Events scope in the existing Event component. This supersedes earlier event-scaffold-only and REGISTERED/CANCELLED-only descriptions. Schemas remain in src/schemas. Auth, guards, ProductService, OrderService, MemberService and community code are unchanged.

@@ -16,6 +16,7 @@ import { LikeInput } from '../../libs/dto/like/like.input';
 import { LikeGroup } from '../../libs/enums/like.enum';
 import { Follower, Following, MeFollowed } from '../../libs/dto/follow/follow';
 import { lookupAuthMemberLiked } from '../../libs/config';
+import { isEmail } from 'class-validator';
 
 @Injectable()
 export class MemberService {
@@ -35,6 +36,7 @@ export class MemberService {
     }
 
     public async signup(input: MemberInput): Promise<Member> {
+        this.prepareMemberEmail(input);
         const memberType = input.memberType ?? MemberType.USER;
         if (![MemberType.USER, MemberType.SHOP].includes(memberType)) {
             throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
@@ -46,7 +48,9 @@ export class MemberService {
             result.accessToken = await this.authService.createToken(result);
             return result
         } catch (err) {
-            console.log("Error, Service.model:", err.message);
+            if (err.code === 11000 && (err.keyPattern?.memberEmail || err.keyValue?.memberEmail)) {
+                throw new BadRequestException(Message.USED_MEMBER_EMAIL);
+            }
             throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE)
         }
     }
@@ -79,6 +83,7 @@ export class MemberService {
         if (input.memberType !== undefined || input.memberStatus !== undefined) {
             throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
         }
+        this.prepareMemberEmail(input);
         const result: Member = await this.memberModel
             .findOneAndUpdate(
                 {
@@ -86,9 +91,15 @@ export class MemberService {
                     memberStatus: MemberStatus.ACTIVE,
                 },
                 input,
-                { new: true },
+                { new: true, runValidators: true },
             )
-            .exec();
+            .exec()
+            .catch((err) => {
+                if (err.code === 11000 && (err.keyPattern?.memberEmail || err.keyValue?.memberEmail)) {
+                    throw new BadRequestException(Message.USED_MEMBER_EMAIL);
+                }
+                throw err;
+            });
 
         if (!result) {
             throw new InternalServerErrorException(Message.UPDATE_FAILED);
@@ -132,6 +143,11 @@ export class MemberService {
         return targetMember;
     }
 
+    public async getMemberEmail(memberId: ObjectId): Promise<Pick<Member, 'memberEmail' | 'memberEmailVerified'>> {
+        return await this.memberModel.findOne({ _id: memberId })
+            .select('memberEmail memberEmailVerified').lean().exec();
+    }
+
     public async getAgents(
         memberId: ObjectId,
         input: AgentsInquiry,
@@ -159,6 +175,7 @@ export class MemberService {
                         list: [
                             { $skip: (input.page - 1) * input.limit },
                             { $limit: input.limit },
+                            { $project: { memberEmail: 0, memberEmailVerified: 0 } },
                             lookupAuthMemberLiked(memberId),
                         ],
                         metaCounter: [{ $count: "total" }],
@@ -167,7 +184,6 @@ export class MemberService {
             ])
             .exec();
 
-        console.log("result:", result);
         if (!result.length) {
             throw new InternalServerErrorException(Message.NO_DATA_FOUND);
         }
@@ -219,6 +235,7 @@ export class MemberService {
                         list: [
                             { $skip: (input.page - 1) * input.limit },
                             { $limit: input.limit },
+                            { $project: { memberEmail: 0, memberEmailVerified: 0 } },
                         ],
                         metaCounter: [{ $count: 'total' }],
                     },
@@ -234,10 +251,33 @@ export class MemberService {
     }
 
     public async updateMemberByAdmin(input: MemberUpdate): Promise<Member> {
-        const result: Member = await this.memberModel.findOneAndUpdate({ _id: input._id }, input, { new: true }).exec();
+        this.prepareMemberEmail(input);
+        const result: Member = await this.memberModel
+            .findOneAndUpdate({ _id: input._id }, input, { new: true, runValidators: true })
+            .exec()
+            .catch((err) => {
+                if (err.code === 11000 && (err.keyPattern?.memberEmail || err.keyValue?.memberEmail)) {
+                    throw new BadRequestException(Message.USED_MEMBER_EMAIL);
+                }
+                throw err;
+            });
         if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
         return result;
+    }
+
+    private prepareMemberEmail(input: MemberInput | MemberUpdate): void {
+        if (Object.prototype.hasOwnProperty.call(input, 'memberEmailVerified')) {
+            throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
+        if (input.memberEmail === undefined) return;
+        if (input.memberEmail !== null) {
+            if (typeof input.memberEmail !== 'string') throw new BadRequestException('Invalid member email');
+            input.memberEmail = input.memberEmail.trim().toLowerCase();
+            if (!isEmail(input.memberEmail)) throw new BadRequestException('Invalid member email');
+        }
+        // An explicit email submission (including clearing it) always requires verification again.
+        (input as T).memberEmailVerified = false;
     }
 
     private async checkSubscription(
