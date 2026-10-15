@@ -25,6 +25,9 @@ export class Member {
     memberNick: string;
 
     @Field(() => String, { nullable: true })
+    shopName?: string;
+
+    @Field(() => String, { nullable: true })
     memberEmail?: string;
 
     @Field(() => Boolean, { nullable: true })

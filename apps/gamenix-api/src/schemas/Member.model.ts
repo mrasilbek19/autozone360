@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Query, Schema } from 'mongoose';
 import { isEmail } from 'class-validator';
 import { MemberAuthType, MemberStatus, MemberType } from '../libs/enums/member.enum';
 
@@ -31,6 +31,24 @@ const MemberSchema = new Schema({
         type: String,
         index: { unique: true, sparse: true },
         required: true,
+    },
+
+    shopName: {
+        type: String,
+        trim: true,
+        minlength: 1,
+        maxlength: 100,
+        validate: {
+            validator: function (value: string) {
+                let memberType = this.memberType;
+                if (this instanceof Query) {
+                    memberType = this.get('memberType');
+                    if (memberType === undefined) memberType = this.getQuery().memberType;
+                }
+                return value === undefined || (value !== null && memberType === MemberType.SHOP);
+            },
+            message: 'Shop name is only available for shop accounts',
+        },
     },
 
     memberEmail: {

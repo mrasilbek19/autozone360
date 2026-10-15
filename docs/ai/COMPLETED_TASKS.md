@@ -1,5 +1,35 @@
 # Completed tasks and evidence ledger
 
+## Separate SHOP username and public shop name — 2026-10-15
+
+Completed backend and frontend using the existing Member collection, resolver/service/DTO architecture, Apollo documents and account/public components. memberNick remains the login username; shopName is the optional public business name, trimmed and validated at DTO/service/schema boundaries (1–100 characters when supplied). SHOP signup stays PENDING; existing approval, auth/passwords, guards, USER registration and private-email rules remain intact. Legacy accounts need no backfill and use their existing public display fallback until configured. Self-name writes enforce authenticated identity plus current SHOP/ACTIVE ownership; the existing admin mutation can name resulting SHOP records and removes the field on authorized role changes away from SHOP. Public directory search also accepts the public name.
+
+Backend files and purpose:
+
+- apps/gamenix-api/src/schemas/Member.model.ts: optional trimmed SHOP-only persisted shopName with length validation, including Mongoose update validation.
+- apps/gamenix-api/src/libs/dto/member/member.input.ts, member.update.ts, member.ts: expose the field through existing signup/update inputs and nullable Member output.
+- apps/gamenix-api/src/components/member/member.service.ts: normalize/restrict signup and owner/admin name writes, preserve approval/legacy flows, support business-name directory search.
+- apps/gamenix-api/src/components/member/member.resolver.ts: reject foreign IDs on name-bearing self-updates before existing authenticated-ID handling.
+- apps/gamenix-api/src/components/member/member-shop-name.spec.ts: 62 schema/DTO/service/actual Nest GraphQL authorization, bcrypt/JWT/login/approval/legacy and Mongoose query validation cases.
+- docs/ai/BACKEND_MIGRATION.md, FRONTEND_MIGRATION.md and this COMPLETED_TASKS.md entry: document the contract, client behavior, rollout order and validation. Pre-existing unrelated documentation/source edits remain outside this task's commit.
+
+Frontend files and purpose:
+
+- apollo/user/query.ts, apollo/user/mutation.ts, apollo/admin/query.ts, apollo/admin/mutation.ts: add shopName to existing Member selections; private email/verification selected only by owner-protected GET_MEMBER, with no duplicate operation.
+- libs/types/member/member.ts, member.input.ts, member.update.ts and libs/types/customJwtPayload.ts: represent optional name in existing contracts and private email output for the account form.
+- apollo/store.ts and libs/auth/index.ts: carry/reset the public name in existing auth state and submit it only for SHOP signup; preserve username/password-only login.
+- pages/account/join.tsx: SHOP-only Shop Name input, separate Username and trimmed/blank/length validation; USER form unchanged.
+- libs/components/mypage/MyProfile.tsx, MyMenu.tsx and scss/pc/mypage/myProfile.scss: Shop Information section with separate read-only username, editable business name, owner-only read-only email, existing photo; safe existing-member mutation and matching responsive styling.
+- libs/components/common/ShopCard.tsx, libs/components/homepage/TopShopCard.tsx and pages/shop/detail.tsx: public business names with legacy fallbacks.
+- libs/components/product/ProductCard.tsx and pages/product/detail.tsx: product seller business names without changing product/basket logic or links.
+- libs/components/member/MemberMenu.tsx, MemberFollowers.tsx and MemberFollowings.tsx: SHOP public identities while retaining ordinary USER names.
+- libs/components/common/CommunityCard.tsx, pages/community/detail.tsx, libs/components/product/Comments.tsx, Review.tsx and libs/components/shop/ReviewCard.tsx: SHOP community/review labels use business names; ordinary USER identities remain unchanged.
+- scripts/test-shop-name.cjs: offline actual auth-helper payload/JWT checks and rendered public-card legacy/SHOP/USER/link checks, without new dependencies.
+
+Verification: backend API/batch TypeScript and API build PASS; full Jest run PASS (144 offline tests, including 62 new shop-name cases, with four existing email Mongo cases skipped because MEMBER_TEST_MONGO_URI is unset). Frontend yarn tsc --noEmit --incremental false, yarn node scripts/test-shop-name.cjs, yarn node scripts/test-basket.cjs and yarn node scripts/test-product-categories.cjs PASS (Node20). Apollo AST checks parse all 54 existing documents; all 22 Member selections containing memberNick include shopName, private email selections occur only in GET_MEMBER. Isolated Next/Chrome with intercepted GraphQL and mocked sockets verified separate SHOP signup payload, username-only login, owner name trim/save without memberNick/email, read-only owner email/username, legacy omission, unchanged USER signup/profile, public shop/product cards/details, light/dark desktop/mobile forms and tablet profile without horizontal overflow. Screenshots inspected and no browser runtime exceptions. Diff/whitespace and selective staging reviewed.
+
+No live MongoDB writes, migrations/backfills, real account/signup/approval mutations, emails, dependencies, collections or product/basket/order business changes. Existing unrelated backend work is preserved. Backend must be deployed before frontend requests the new GraphQL field.
+
 ## Member email fields and verification status — 2026-10-13
 
 Implemented the requested backend-only member email foundation after reading the four handoff files and inspecting Member schema/DTOs/service/resolver, signup/login/JWT behavior, existing uniqueness rules, shared/nested member results and dependencies. Preserved the NestJS resolver/service/module pattern and existing optional-email account behavior. No schema relocation or duplicate DTO was introduced.

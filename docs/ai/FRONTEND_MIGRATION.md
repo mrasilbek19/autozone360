@@ -1,5 +1,15 @@
 # Frontend migration plan
 
+## SHOP username and shop name integration — 2026-10-15
+
+SHOP registration now has separate Username (memberNick) and Shop Name (shopName) inputs. Login still submits only memberNick/memberPassword. USER registration remains unchanged. The backend field is optional for older clients/accounts; the new SHOP signup UI requires a nonblank name and sends its trimmed value.
+
+Existing SHOP MyProfile adds Shop Information with read-only Username, editable Shop Name, read-only owner email and the existing photo/upload controls. It uses the existing authenticated GET_MEMBER query for the current public name and private email; those email values are never copied into JWT/reactive auth state or sent during profile saves. Only data matching the current owner's ID can appear in the email field. Existing UPDATE_MEMBER saves the name with the owner's ID and omits memberNick for SHOP; ordinary USER saves omit shopName. Legacy shops with no name can continue other profile edits without sending an empty name. Pending shops retain the existing backend ACTIVE-only update restriction.
+
+Existing shop cards/details, product seller cards/details, member/follow lists and SHOP community/review identities prefer shopName and retain their existing display-name fallback. Ordinary USER names, ID-based navigation, filtering, basket/order logic, approval and email privacy rules remain unchanged. No duplicate queries/mutations, custom hooks, new collections or dependencies were introduced. Deploy the backend shopName contract before these GraphQL documents.
+
+Validated with Yarn TypeScript, the focused test-shop-name.cjs plus existing basket/category scripts, and isolated browser GraphQL fixtures for signup/login, owner profile rename, private email display, legacy/USER behavior, public shop/product names, light/dark desktop/mobile forms and tablet account layout. No live accounts or orders were created.
+
 ## Current Events contract — 2026-10-10
 
 Backend Events operations now exist; frontend work is still NOT STARTED. Historical ER-only descriptions below are superseded. Checkout operations also exist; follow current order decisions rather than the historical definition-only snapshot.

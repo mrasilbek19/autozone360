@@ -1,5 +1,15 @@
 # Backend migration: Nestar → Gamenix
 
+## Separate SHOP username and public shop name — 2026-10-15
+
+The existing Member schema, MemberInput, MemberUpdate and Member output now support optional shopName. Supplied names are trimmed strings of 1–100 characters; spaces are allowed, blank/null/overlong values are rejected. Omitted names remain valid for legacy accounts and clients. Only SHOP records can store the field; no Shop collection, migration, backfill, nickname rename or uniqueness index was added. memberNick/password login and password hashing remain unchanged. The existing token serializer naturally carries the public shopName and still omits private email fields.
+
+Self-updates use the existing authenticated member ID and ACTIVE-only rule. Name-bearing requests with another _id are rejected before the resolver removes that ID; the service checks the current SHOP/ACTIVE record and repeats those constraints in its update predicate. Ordinary USER accounts cannot write shopName. Existing ADMIN mutation/guard permissions remain; the resulting account must be SHOP to receive a name, and an authorized change away from SHOP unsets it. New SHOP signup remains PENDING and existing approval/status protections remain. No guard, auth service or approval rewrite was made.
+
+Public getAgents search now matches shopName and the existing memberFullName/memberNick fallbacks while retaining ACTIVE SHOP filtering and private-email projections. Frontend public business labels prefer shopName; legacy fallbacks remain until a shop configures its name. Deploy this backend GraphQL contract before the updated frontend documents.
+
+Validation: API/batch TypeScript, API build, 144 offline tests across four suites (including 62 shop-name cases), frontend Yarn TypeScript/regression scripts and mocked desktop/tablet/mobile browser checks pass. Four existing email Mongo integration cases are skipped without MEMBER_TEST_MONGO_URI. No live database, account creation, name migration or approval mutation was performed.
+
 ## Member email foundation — 2026-10-13
 
 Added optional memberEmail and default-false memberEmailVerified to the existing Member schema and GraphQL contract. Email is trimmed, lowercased and validated in DTOs, the member service and schema. A unique partial index covers string-valued emails only, excluding missing/null fields; existing nickname/phone uniqueness is unchanged. Signup remains optional-email and nickname/password login is unchanged for USER/SHOP/ADMIN. No data backfill, fake email, migration or live database write was performed.

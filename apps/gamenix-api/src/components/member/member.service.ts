@@ -41,6 +41,10 @@ export class MemberService {
         if (![MemberType.USER, MemberType.SHOP].includes(memberType)) {
             throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
         }
+        this.prepareShopName(input);
+        if (input.shopName !== undefined && memberType !== MemberType.SHOP) {
+            throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
         if (memberType === MemberType.SHOP) (input as T).memberStatus = MemberStatus.PENDING;
         input.memberPassword = await this.authService.hashPassword(input.memberPassword);
         try {
@@ -84,12 +88,19 @@ export class MemberService {
             throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
         }
         this.prepareMemberEmail(input);
+        this.prepareShopName(input);
+        const search: T = { _id: memberId, memberStatus: MemberStatus.ACTIVE };
+        if (input.shopName !== undefined) {
+            if (input._id !== undefined && String(input._id) !== String(memberId)) {
+                throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+            }
+            search.memberType = MemberType.SHOP;
+            const shop = await this.memberModel.findOne(search).lean().exec();
+            if (!shop) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
         const result: Member = await this.memberModel
             .findOneAndUpdate(
-                {
-                    _id: memberId,
-                    memberStatus: MemberStatus.ACTIVE,
-                },
+                search,
                 input,
                 { new: true, runValidators: true },
             )
@@ -163,7 +174,10 @@ export class MemberService {
             [input?.sort ?? "createdAt"]: input?.direction ?? Direction.DESC,
         };
 
-        if (text) match.memberNick = { $regex: new RegExp(text, "i") };
+        if (text) {
+            const searchText = { $regex: new RegExp(text, "i") };
+            match.$or = [{ shopName: searchText }, { memberFullName: searchText }, { memberNick: searchText }];
+        }
         console.log("match:", match);
 
         const result = await this.memberModel
@@ -252,8 +266,22 @@ export class MemberService {
 
     public async updateMemberByAdmin(input: MemberUpdate): Promise<Member> {
         this.prepareMemberEmail(input);
+        this.prepareShopName(input);
+        const search: T = { _id: input._id };
+        if (input.shopName !== undefined) {
+            const member = await this.memberModel.findOne(search).lean().exec();
+            const memberType = input.memberType === undefined ? member?.memberType : input.memberType;
+            if (!member || memberType !== MemberType.SHOP) {
+                throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+            }
+            if (input.memberType !== MemberType.SHOP) search.memberType = MemberType.SHOP;
+        }
+        const update: T = { ...input };
+        if (input.memberType !== undefined && input.memberType !== MemberType.SHOP) {
+            update.$unset = { shopName: 1 };
+        }
         const result: Member = await this.memberModel
-            .findOneAndUpdate({ _id: input._id }, input, { new: true, runValidators: true })
+            .findOneAndUpdate(search, update, { new: true, runValidators: true })
             .exec()
             .catch((err) => {
                 if (err.code === 11000 && (err.keyPattern?.memberEmail || err.keyValue?.memberEmail)) {
@@ -264,6 +292,13 @@ export class MemberService {
         if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
         return result;
+    }
+
+    private prepareShopName(input: MemberInput | MemberUpdate): void {
+        if (input.shopName === undefined) return;
+        if (typeof input.shopName !== 'string') throw new BadRequestException('Invalid shop name');
+        input.shopName = input.shopName.trim();
+        if (!input.shopName || input.shopName.length > 100) throw new BadRequestException('Invalid shop name');
     }
 
     private prepareMemberEmail(input: MemberInput | MemberUpdate): void {

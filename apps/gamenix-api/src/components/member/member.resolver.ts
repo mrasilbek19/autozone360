@@ -1,6 +1,6 @@
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { MemberService } from './member.service';
-import { InternalServerErrorException, UseGuards } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException, UseGuards } from '@nestjs/common';
 import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
 import { Member, Members } from '../../libs/dto/member/member';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -55,6 +55,9 @@ export class MemberResolver {
         @AuthMember('_id') memberId: ObjectId
     ): Promise<Member> {
         console.log('Mutation: updateMember');
+        if (input.shopName !== undefined && String(input._id) !== String(memberId)) {
+            throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+        }
         delete input._id
         return await this.memberService.updateMember(memberId, input);
     }
