@@ -1,5 +1,25 @@
 # Completed tasks and evidence ledger
 
+## Password update security — 2026-10-16
+
+Fixed the two existing member update paths without changing signup, login, AuthService, guards, JWT policy, DTOs, schemas or frontend code. MemberService.updateMember and updateMemberByAdmin now reject supplied null/non-string/empty/whitespace-only passwords and call the existing AuthService.hashPassword once before passing a new password to Mongoose. Omitted passwords are untouched. Intentional spaces in a nonblank password are preserved; the existing DTO length rule remains 5–12 characters. Existing role/status restrictions, SHOP approval, shopName and email behavior are unchanged.
+
+Files:
+
+- apps/gamenix-api/src/components/member/member.service.ts: minimal validation and bcrypt preparation in both update methods.
+- apps/gamenix-api/src/components/member/member-password.spec.ts: 37 offline cases using real bcrypt/JWT with an in-memory model stub, covering signup, USER/SHOP username login, both password updates, old/new comparisons, single hashing, profile-only updates, invalid values, preserved spaces, hashing failure, self-role restrictions and existing DTO length boundaries.
+- docs/ai/COMPLETED_TASKS.md: this task's evidence only; pre-existing ledger additions remain unstaged.
+
+Validation executed:
+
+- Before the fix, the new password suite reproduced the vulnerability: 22 failed / 15 passed.
+- env -u MEMBER_TEST_MONGO_URI -u EVENT_TEST_MONGO_URI ./node_modules/.bin/jest --runInBand --silent --cacheDirectory /private/tmp/gamenix-password-phase1/jest-cache — PASS: 181 tests across 5 suites, including all 37 new cases. Four MongoDB integration tests / one suite were skipped explicitly to avoid database writes.
+- ./node_modules/.bin/tsc -p apps/gamenix-api/tsconfig.app.json --noEmit --incremental false — PASS.
+- ./node_modules/.bin/tsc -p apps/gamenix-batch/tsconfig.app.json --noEmit --incremental false — PASS.
+- npm --cache /private/tmp/gamenix-password-phase1/npm-cache run build — PASS (API webpack build).
+
+No dependencies, collections, migrations, live database writes, new authentication flows or unrelated fixes were introduced. This prevents new plaintext writes through these update methods; it does not repair previously saved plaintext passwords or revoke existing JWTs. Existing password policy and other audited concerns remain separately scoped. Source/ledger changes are isolated from pre-existing event/product edits and deleted tests; only this ledger section is included in the task commit.
+
 ## Separate SHOP username and public shop name — 2026-10-15
 
 Completed backend and frontend using the existing Member collection, resolver/service/DTO architecture, Apollo documents and account/public components. memberNick remains the login username; shopName is the optional public business name, trimmed and validated at DTO/service/schema boundaries (1–100 characters when supplied). SHOP signup stays PENDING; existing approval, auth/passwords, guards, USER registration and private-email rules remain intact. Legacy accounts need no backfill and use their existing public display fallback until configured. Self-name writes enforce authenticated identity plus current SHOP/ACTIVE ownership; the existing admin mutation can name resulting SHOP records and removes the field on authorized role changes away from SHOP. Public directory search also accepts the public name.

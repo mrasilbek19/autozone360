@@ -98,6 +98,12 @@ export class MemberService {
             const shop = await this.memberModel.findOne(search).lean().exec();
             if (!shop) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
         }
+        if (input.memberPassword !== undefined) {
+            if (typeof input.memberPassword !== 'string' || !input.memberPassword.trim()) {
+                throw new BadRequestException('Invalid member password');
+            }
+            input.memberPassword = await this.authService.hashPassword(input.memberPassword);
+        }
         const result: Member = await this.memberModel
             .findOneAndUpdate(
                 search,
@@ -275,6 +281,12 @@ export class MemberService {
                 throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
             }
             if (input.memberType !== MemberType.SHOP) search.memberType = MemberType.SHOP;
+        }
+        if (input.memberPassword !== undefined) {
+            if (typeof input.memberPassword !== 'string' || !input.memberPassword.trim()) {
+                throw new BadRequestException('Invalid member password');
+            }
+            input.memberPassword = await this.authService.hashPassword(input.memberPassword);
         }
         const update: T = { ...input };
         if (input.memberType !== undefined && input.memberType !== MemberType.SHOP) {
