@@ -1,5 +1,9 @@
 # Backend migration: Nestar → Gamenix
 
+## SMTP email verification implemented — 2026-10-16
+
+Phase 2 now provides reusable Nodemailer SMTP/capture mail, owner-requested verification and public token consumption using auth-only MongoDB transactions. Private email versions invalidate old grants on self/admin email changes. Username/password login, optional email, SHOP approval and existing guard/order/event policies remain unchanged. Tokens are hashed, expiring and single-use; account resend limits persist in MongoDB and IP limits are per process. Node 20+ is required by patched Nodemailer. Development transaction support and 18 isolated real-MongoDB cases were verified; all 242 executed tests, both TypeScript checks and API build pass. No application data migration or real SMTP sending occurred. See [EMAIL_VERIFICATION.md](EMAIL_VERIFICATION.md) for the actual contract/configuration and deployment limits. Earlier email-foundation-only descriptions below are historical.
+
 ## Separate SHOP username and public shop name — 2026-10-15
 
 The existing Member schema, MemberInput, MemberUpdate and Member output now support optional shopName. Supplied names are trimmed strings of 1–100 characters; spaces are allowed, blank/null/overlong values are rejected. Omitted names remain valid for legacy accounts and clients. Only SHOP records can store the field; no Shop collection, migration, backfill, nickname rename or uniqueness index was added. memberNick/password login and password hashing remain unchanged. The existing token serializer naturally carries the public shopName and still omits private email fields.

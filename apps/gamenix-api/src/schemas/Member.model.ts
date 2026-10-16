@@ -68,6 +68,12 @@ const MemberSchema = new Schema({
         select: false,
     },
 
+    // Internal verification state; never exposed by Member GraphQL fields.
+    memberEmailVersion: { type: Number, min: 0, select: false },
+    emailVerificationRequestedAt: { type: Date, select: false },
+    emailVerificationWindowStart: { type: Date, select: false },
+    emailVerificationRequests: { type: Number, min: 0, select: false },
+
     memberPassword: {
         type: String,
         select: false,

@@ -104,6 +104,7 @@ export class MemberService {
             }
             input.memberPassword = await this.authService.hashPassword(input.memberPassword);
         }
+        if (input.memberEmail !== undefined) (input as T).$inc = { memberEmailVersion: 1 };
         const result: Member = await this.memberModel
             .findOneAndUpdate(
                 search,
@@ -289,6 +290,7 @@ export class MemberService {
             input.memberPassword = await this.authService.hashPassword(input.memberPassword);
         }
         const update: T = { ...input };
+        if (input.memberEmail !== undefined) update.$inc = { memberEmailVersion: 1 };
         if (input.memberType !== undefined && input.memberType !== MemberType.SHOP) {
             update.$unset = { shopName: 1 };
         }

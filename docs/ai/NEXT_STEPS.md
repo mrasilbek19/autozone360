@@ -1,5 +1,11 @@
 # Next steps
 
+## Email verification backend complete — 2026-10-16
+
+SMTP/capture and requestEmailVerification/verifyEmail are implemented and tested; do not repeat the earlier planned verification work below. See [EMAIL_VERIFICATION.md](EMAIL_VERIFICATION.md). Backend requires Node 20+ and transaction-capable MongoDB. Real SMTP delivery still needs operator-configured credentials/sender and FRONTEND_ORIGIN; none were added to .env or exercised against a real mailbox. Development capture is the non-production default.
+
+Separately scoped frontend follow-up: owner email editing/status/resend controls and /account/verify-email, reading/clearing the token fragment and calling verifyEmail once. Keep memberNick login, private owner-only email and SHOP approval unchanged. Validate real sender delivery only after explicit authorization. Account budgets are MongoDB-backed; multi-instance deployment needs shared edge/IP limits and an intentional proxy-trust configuration. Password recovery, notifications, OAuth and payments remain unimplemented separate phases. Current backend validation: 242 passing tests (18 real MongoDB cases), four legacy Mongo tests skipped, both TypeScript checks and API build pass.
+
 ## Member email verification follow-up — 2026-10-13
 
 The member email foundation is complete. Email remains optional, private and unverified by default; authenticated owners can select memberEmail/memberEmailVerified through their existing getMember query. Explicit email submissions (including an unchanged value or null removal) reset verification; omitting email preserves it. No verification/sending integration is authorized by this completion.

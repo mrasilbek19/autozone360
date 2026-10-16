@@ -161,7 +161,7 @@ describe('Member email service behavior', () => {
     it('resets verification when explicitly clearing or resubmitting email', async () => {
         for (const memberEmail of [null, 'owner@example.com']) {
             await service.updateMember(ownerId as any, { _id: ownerId as any, memberEmail });
-            expect(members.findOneAndUpdate.mock.calls.at(-1)[1]).toEqual({ _id: ownerId, memberEmail, memberEmailVerified: false });
+            expect(members.findOneAndUpdate.mock.calls.at(-1)[1]).toEqual({ _id: ownerId, memberEmail, memberEmailVerified: false, $inc: { memberEmailVersion: 1 } });
         }
     });
 

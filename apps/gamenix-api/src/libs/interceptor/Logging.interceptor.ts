@@ -25,7 +25,9 @@ export class LoggingInterceptor implements NestInterceptor {
             // Develop if needed!
         } else if (requestType === 'graphql') {
             const gqlContext = GqlExecutionContext.create(context);
-            this.logger.log(`${this.stringify(gqlContext.getContext().req.body)}`, 'REQUEST');
+            const fieldName = gqlContext.getInfo()?.fieldName;
+            const privateRequest = ['requestEmailVerification', 'verifyEmail'].includes(fieldName);
+            this.logger.log(privateRequest ? fieldName : `${this.stringify(gqlContext.getContext().req.body)}`, 'REQUEST');
 
             return next.handle().pipe(
                 tap((context) => {
