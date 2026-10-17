@@ -8,6 +8,7 @@ export enum EventType {
 registerEnumType(EventType, { name: 'EventType' });
 
 export enum EventStatus {
+    PENDING = 'PENDING',
     PAUSED = 'PAUSED',
     PROCESS = 'PROCESS',
     FINISHED = 'FINISHED',

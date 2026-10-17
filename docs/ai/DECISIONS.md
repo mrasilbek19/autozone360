@@ -8,6 +8,10 @@
 - Hide both fields by default in Mongoose and protect their nullable GraphQL fields with an authenticated-owner identity check for every Member result, including nested members. Owner reads use current database values, never JWT verification status. Shop/admin list aggregates exclude the fields. Omit both from JWTs because tokens are decoded and reused in existing public socket member payloads. Existing guards and role/status behavior remain unchanged.
 - No provider or verification implementation exists in the inspected backend. This task authorizes only data, validation, privacy and supporting logic/tests. SMTP/Gmail/SendGrid/Resend, token endpoints, sending, password reset, order/payment emails, payment processing and frontend modifications require a later request. Future payment mail may contain summaries, transaction references, status and receipts, never card numbers/CVVs/payment credentials.
 
+## Product grouping and additional product types — 2026-10-11
+
+The user approved frontend-only groups in this order: PC (KEYBOARD, MONITOR, MOUSE, HEADPHONES, ACCESSORY), Mobile (GAMING_PHONE), Console (PLAYSTATION, CONTROLLER), PC Components (CPU, GPU, RAM), Furniture (CHAIR, DESK). Add CPU / RAM / PLAYSTATION to backend and frontend ProductType without renaming existing values. This supersedes the earlier ten-category restriction. Groups are mappings to existing search.typeList, not stored fields or new GraphQL enums. New catalog visits default to PC; existing mixed-type links retain their results in All products. Keep the compact sort control, search/price/shop filters and history behavior. No database migration is required. Deploy backend support first.
+
 ## Approved Events lifecycle and consistency — 2026-10-10
 
 - Keep participant operations in the existing Event module/service/resolver, and schemas in src/schemas. Register existing Member/EventParticipant models and AuthModule. Do not edit guards/JWT, orders, catalog or community.

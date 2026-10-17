@@ -13,7 +13,7 @@ const EventSchema = new Schema(
             type: String,
             enum: EventStatus,
             required: true,
-            default: EventStatus.PAUSED,
+            default: EventStatus.PENDING,
         },
 
         eventTitle: {

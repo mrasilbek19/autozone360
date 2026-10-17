@@ -31,8 +31,7 @@ export class EventService {
     ): Promise<Event> {
         await this.getActiveMember(memberId, [MemberType.SHOP]);
 
-        const eventStatus = input.eventStatus ?? EventStatus.PAUSED;
-        if (eventStatus === EventStatus.FINISHED) throw new BadRequestException('A new event cannot be finished');
+        const eventStatus = EventStatus.PENDING;
 
         this.validateEvent({ ...input, eventStatus }, true);
 
@@ -405,8 +404,14 @@ export class EventService {
                 if (!changes.deletedAt) {
                     if (targetEvent.eventStatus === EventStatus.FINISHED) throw new BadRequestException('Finished events cannot be edited');
 
+                    if (!byAdmin && changes.eventStatus !== undefined &&
+                        ((targetEvent.eventStatus === EventStatus.PENDING && changes.eventStatus !== EventStatus.PENDING) ||
+                            (targetEvent.eventStatus !== EventStatus.PENDING && changes.eventStatus === EventStatus.PENDING))) {
+                        throw new ForbiddenException('Only an admin can change event approval status');
+                    }
+
                     const requireFuture = changes.eventStart !== undefined ||
-                        (changes.eventStatus === EventStatus.PROCESS && targetEvent.eventStatus === EventStatus.PAUSED);
+                        (changes.eventStatus === EventStatus.PROCESS && targetEvent.eventStatus !== EventStatus.PROCESS);
 
                     this.validateEvent({ ...targetEvent.toObject(), ...changes }, requireFuture);
 

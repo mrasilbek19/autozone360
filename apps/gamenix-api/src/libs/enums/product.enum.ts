@@ -10,6 +10,9 @@ export enum ProductType {
     CONTROLLER = 'CONTROLLER',
     ACCESSORY = 'ACCESSORY',
     GPU = 'GPU',
+    CPU = 'CPU',
+    RAM = 'RAM',
+    PLAYSTATION = 'PLAYSTATION',
     GAMING_PHONE = 'GAMING_PHONE',
 }
 registerEnumType(ProductType, { name: 'ProductType' });
